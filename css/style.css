@@ -1,0 +1,165 @@
+:root {
+  --bg: #0b2239;
+  --panel: rgba(11, 34, 57, 0.94);
+  --text: #eef4fa;
+  --muted: #9fb3c8;
+  --good: #3ddc84;
+  --bad: #ff6b6b;
+  --accent: #ffb020;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overscroll-behavior: none;
+}
+
+/* bottom wird per JS auf die Höhe des Panels gesetzt, damit das Boot nie verdeckt ist */
+#map { position: fixed; inset: 0; bottom: var(--panel-h, 0px); }
+
+/* ---------- Suche ---------- */
+.search {
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top));
+  left: 10px;
+  right: 70px;
+  z-index: 1000;
+  display: flex;
+}
+.search input {
+  flex: 1;
+  min-width: 0;
+  font-size: 16px; /* verhindert Auto-Zoom auf Handys */
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px 0 0 10px;
+  background: #fff;
+  color: #111;
+}
+.search button {
+  border: none;
+  border-radius: 0 10px 10px 0;
+  padding: 0 14px;
+  background: var(--accent);
+  font-size: 18px;
+}
+.search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  background: #fff;
+  color: #111;
+  border-radius: 10px;
+  max-height: 50vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .3);
+}
+.search-results li {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+  cursor: pointer;
+}
+.search-results li:last-child { border-bottom: none; }
+
+/* ---------- Buttons ---------- */
+.fab-col {
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top));
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fab {
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 22px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+}
+.fab.active { background: var(--accent); color: #111; }
+
+.hint {
+  position: fixed;
+  top: calc(64px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: var(--accent);
+  color: #111;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* ---------- Anzeige ---------- */
+.panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: var(--panel);
+  padding: 10px 14px calc(12px + env(safe-area-inset-bottom));
+  border-radius: 16px 16px 0 0;
+}
+.label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+.vmg { text-align: center; }
+.vmg .big {
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.vmg .big small { font-size: 22px; color: var(--muted); }
+.vmg.good .big span { color: var(--good); }
+.vmg.bad .big span { color: var(--bad); }
+.status { font-size: 13px; color: var(--muted); min-height: 1.2em; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+  text-align: center;
+}
+.grid > div > span:not(.label) {
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.grid small { font-size: 12px; color: var(--muted); margin-left: 2px; }
+
+.demo { margin-top: 10px; display: grid; gap: 6px; font-size: 14px; }
+.demo input { width: 100%; }
+
+/* ---------- Karten-Symbole ---------- */
+.boat-icon {
+  width: 36px;
+  height: 36px;
+  transform-origin: 50% 50%;
+}
+.boat-icon svg { width: 100%; height: 100%; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+
+/* Leaflet-Zoom-Buttons unter die Suchleiste schieben */
+.leaflet-top { top: calc(56px + env(safe-area-inset-top)); }

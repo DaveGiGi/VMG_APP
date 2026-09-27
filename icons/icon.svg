@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0b2239"/>
+  <path d="M256 70 L256 330 L120 330 Z" fill="#eef4fa"/>
+  <path d="M272 110 L272 330 L380 330 Z" fill="#ffb020"/>
+  <path d="M110 355 H402 L360 410 H152 Z" fill="#3ddc84"/>
+  <text x="256" y="470" font-family="Arial, sans-serif" font-size="64" font-weight="700" fill="#eef4fa" text-anchor="middle">VMG</text>
+</svg>

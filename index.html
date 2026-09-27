@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b2239">
+  <title>VMG Segeln</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="map"></div>
+
+  <!-- Suche oben -->
+  <form id="search" class="search" autocomplete="off">
+    <input id="search-input" type="search" placeholder="Ziel suchen (Ort, Hafen …)" aria-label="Ziel suchen">
+    <button type="submit" aria-label="Suchen">🔍</button>
+    <ul id="search-results" class="search-results" hidden></ul>
+  </form>
+
+  <!-- Buttons rechts -->
+  <div class="fab-col">
+    <button id="btn-pick" class="fab" title="Ziel auf Karte antippen">🎯</button>
+    <button id="btn-center" class="fab" title="Auf Boot zentrieren">⌖</button>
+    <button id="btn-demo" class="fab" title="Demo-Modus">▶︎</button>
+    <button id="btn-clear" class="fab" title="Ziel löschen">✕</button>
+  </div>
+
+  <div id="hint" class="hint" hidden>Tippe auf die Karte, um das Ziel zu setzen</div>
+
+  <!-- Anzeige unten -->
+  <section class="panel">
+    <div class="vmg">
+      <div class="label">VMG zum Ziel</div>
+      <div class="big"><span id="v-vmg">–</span><small> kn</small></div>
+      <div id="v-status" class="status">Warte auf GPS …</div>
+    </div>
+    <div class="grid">
+      <div><span class="label">SOG</span><span id="v-sog">–</span><small>kn</small></div>
+      <div><span class="label">COG</span><span id="v-cog">–</span><small>°</small></div>
+      <div><span class="label">Peilung</span><span id="v-brg">–</span><small>°</small></div>
+      <div><span class="label">Distanz</span><span id="v-dtw">–</span><small>sm</small></div>
+      <div><span class="label">ETA</span><span id="v-eta">–</span><small id="v-eta-rest"></small></div>
+      <div><span class="label">Genauigkeit</span><span id="v-acc">–</span><small>m</small></div>
+    </div>
+
+    <!-- Nur im Demo-Modus sichtbar -->
+    <div id="demo-controls" class="demo" hidden>
+      <label>Kurs <output id="o-course">45</output>°
+        <input id="i-course" type="range" min="0" max="359" value="45">
+      </label>
+      <label>Fahrt <output id="o-speed">6.0</output> kn
+        <input id="i-speed" type="range" min="0" max="15" step="0.5" value="6">
+      </label>
+    </div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
