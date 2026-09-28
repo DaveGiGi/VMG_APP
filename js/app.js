@@ -14,7 +14,14 @@ const $ = (id) => document.getElementById(id);
 
 const ROUTE_KEY = 'vmg.route';
 const SETTINGS_KEY = 'vmg.settings';
-const DEFAULT_SETTINGS = { autoAdvance: true }; // switch to the next point automatically when rounded
+const DEFAULT_SETTINGS = {
+  autoAdvance: true,  // switch to the next point automatically when rounded
+  showDecimal: true,  // small grey second decimal of the VMG (trend only – GPS is ±0.1–0.2 kn)
+};
+// Smooth display: GPS delivers ~1 fix/s; in between the boat is moved on by dead reckoning
+const FRAME_MS = 100;      // redraw ~10×/s – smooth enough and easy on the battery
+const MAX_PREDICT_S = 2;   // stop extrapolating if no new fix arrives for this long
+const EASE = 0.3;          // how fast displayed numbers follow new values (0..1 per frame)
 const OLD_TARGET_KEY = 'vmg.target'; // v0.1 stored a single target
 const SMOOTHING = 0.35;        // 0..1, higher = reacts faster but jitters more
 const MIN_SOG_FOR_COG_MS = knotsToMs(0.3); // below this, GPS course is just noise
@@ -28,6 +35,9 @@ const state = {
   route: loadRoute(), // {points, active, start} – see route.js
   settings: loadSettings(),
   passedNotified: null, // index of the point whose "passed" message was shown (manual mode)
+  fixTime: null,      // performance.now() of the last fix, for dead reckoning
+  timeFactor: 1,      // demo time-lapse factor (1 with real GPS)
+  shown: { vmg: null, sog: null }, // eased values currently on screen
   follow: true,       // map follows the boat
   picking: false,     // "tap map to add points" mode
   demo: false,
@@ -185,13 +195,16 @@ function saveSettings() {
 
 $('btn-settings').addEventListener('click', () => {
   $('opt-auto').checked = state.settings.autoAdvance;
+  $('opt-decimal').checked = state.settings.showDecimal;
   $('settings').hidden = false;
 });
-$('opt-auto').addEventListener('change', () => {
-  state.settings.autoAdvance = $('opt-auto').checked;
-  saveSettings();
-  render();
-});
+for (const [id, key] of [['opt-auto', 'autoAdvance'], ['opt-decimal', 'showDecimal']]) {
+  $(id).addEventListener('change', () => {
+    state.settings[key] = $(id).checked;
+    saveSettings();
+    render();
+  });
+}
 $('settings-close').addEventListener('click', () => { $('settings').hidden = true; });
 // Tap on the dark background closes the sheet as well
 $('settings').addEventListener('click', (e) => { if (e.target === $('settings')) $('settings').hidden = true; });
@@ -322,6 +335,7 @@ function updateMotion(pos, sogMs, cogDeg, acc, t) {
   const prev = state.pos;
   state.pos = pos;
   state.acc = acc;
+  state.fixTime = performance.now();
 
   // Fallback: derive speed/course from recent fixes (>= 3 s apart)
   state.fixes.push({ ...pos, t });
@@ -358,8 +372,28 @@ function currentSogCog() {
 
 const ptToLL = (p) => [p.lat, p.lon];
 
+/**
+ * Position shown on screen: the last GPS fix moved on along course and speed for the
+ * time since that fix (dead reckoning), so the boat glides instead of jumping once a second.
+ * The route logic (passing points) always uses the real fixes.
+ */
+function displayPos() {
+  const { sog, cog } = currentSogCog();
+  if (!state.pos || cog == null || state.fixTime == null) return state.pos;
+  const dt = Math.min((performance.now() - state.fixTime) / 1000, MAX_PREDICT_S);
+  return destinationPoint(state.pos, cog, sog * state.timeFactor * dt);
+}
+
+/** Let a displayed number glide towards its new value. */
+function ease(key, target) {
+  const s = state.shown[key];
+  state.shown[key] = s == null || !Number.isFinite(target) ? target : s + EASE * (target - s);
+  return state.shown[key];
+}
+
 function drawBoat() {
-  const ll = ptToLL(state.pos);
+  const p = displayPos();
+  const ll = ptToLL(p);
   const wp = activePoint(state.route);
   if (!boatMarker) {
     boatMarker = L.marker(ll, { icon: boatIcon, zIndexOffset: 1000, interactive: false }).addTo(map);
@@ -376,7 +410,7 @@ function drawBoat() {
   if (rot) rot.style.transform = `rotate(${cog ?? 0}deg)`;
 
   // Green line: where the boat will be in 5 minutes
-  headingLine.setLatLngs(cog == null ? [] : [ll, ptToLL(destinationPoint(state.pos, cog, sog * 300))]);
+  headingLine.setLatLngs(cog == null ? [] : [ll, ptToLL(destinationPoint(p, cog, sog * 300))]);
   targetLine.setLatLngs(wp ? [ll, ptToLL(wp)] : []);
 
   if (state.follow) map.panTo(ll, { animate: false });
@@ -419,6 +453,9 @@ function setDemo(on) {
   state.pos = null;
   state.vel = null;
   state.fixes = [];
+  state.timeFactor = 1;
+  state.fixTime = null;
+  state.shown = { vmg: null, sog: null };
   if (!on) {
     // Remove the simulated boat until the next real GPS fix arrives
     state.acc = null;
@@ -448,6 +485,7 @@ function setDemo(on) {
     const course = +$('i-course').value;
     const speed = knotsToMs(+$('i-speed').value);
     const timeFactor = +$('i-sim').value; // fast-forward to test routes on land
+    state.timeFactor = timeFactor;
     pos = destinationPoint(pos, course, speed * timeFactor * ((now - last) / 1000));
     last = now;
     updateMotion(pos, speed, course, 5, now);
@@ -494,14 +532,32 @@ function remainingRouteDistance(fromPos) {
   return d;
 }
 
+/** VMG as big number with an optional small grey second decimal (e.g. "5.4" + "3"). */
+function showVmg(kn) {
+  if (!Number.isFinite(kn)) {
+    $('v-vmg').textContent = '–';
+    $('v-vmg2').textContent = '';
+    return;
+  }
+  if (state.settings.showDecimal) {
+    const s = kn.toFixed(2);
+    $('v-vmg').textContent = s.slice(0, -1);
+    $('v-vmg2').textContent = s.slice(-1);
+  } else {
+    $('v-vmg').textContent = kn.toFixed(1);
+    $('v-vmg2').textContent = '';
+  }
+}
+
 function render() {
   const { sog, cog } = currentSogCog();
   const { points, active } = state.route;
   const wp = activePoint(state.route);
+  const pos = displayPos();
   const vmgBox = document.querySelector('.vmg');
   vmgBox.classList.remove('good', 'bad');
 
-  $('v-sog').textContent = state.pos ? fmt(msToKnots(sog)) : '–';
+  $('v-sog').textContent = pos ? fmt(ease('sog', msToKnots(sog))) : '–';
   $('v-cog').textContent = fmtDeg(cog);
   $('v-acc').textContent = Number.isFinite(state.acc) ? Math.round(state.acc) : '–';
 
@@ -510,7 +566,7 @@ function render() {
   let total = '';
   if (wp) {
     info = `Targeting point ${active + 1}/${points.length}`;
-    if (state.pos && active < points.length - 1) total = `${fmtNm(remainingRouteDistance(state.pos))} nm to finish`;
+    if (pos && active < points.length - 1) total = `${fmtNm(remainingRouteDistance(pos))} nm to finish`;
   } else if (isFinished(state.route)) {
     info = 'Route finished';
   }
@@ -518,10 +574,12 @@ function render() {
   const manual = wp && !state.settings.autoAdvance ? 'manual switching' : '';
   $('v-total').textContent = [manual, total].filter(Boolean).join(' · ');
 
-  if (!state.pos || !wp) {
-    for (const id of ['v-vmg', 'v-brg', 'v-dtw', 'v-eta']) $(id).textContent = '–';
+  if (!pos || !wp) {
+    for (const id of ['v-brg', 'v-dtw', 'v-eta']) $(id).textContent = '–';
     $('v-eta-rest').textContent = '';
-    if (state.pos) {
+    state.shown.vmg = null;
+    showVmg(null);
+    if (pos) {
       showStatus(isFinished(state.route)
         ? '🏁 Route finished – add points to continue'
         : 'Add a point: search, tap 🎯 or long-press the map');
@@ -529,12 +587,13 @@ function render() {
     return;
   }
 
-  const brg = bearing(state.pos, wp);
-  const dist = distance(state.pos, wp);
+  const brg = bearing(pos, wp);
+  const dist = distance(pos, wp);
   const v = cog == null ? 0 : vmg(sog, cog, brg);
   const eta = etaSeconds(dist, v);
+  const vKn = ease('vmg', msToKnots(v));
 
-  $('v-vmg').textContent = fmt(msToKnots(v));
+  showVmg(vKn);
   $('v-brg').textContent = fmtDeg(brg);
   $('v-dtw').textContent = fmtNm(dist);
   if (eta != null) {
@@ -546,8 +605,8 @@ function render() {
     $('v-eta-rest').textContent = '';
   }
 
-  if (msToKnots(v) > 0.1) vmgBox.classList.add('good');
-  else if (msToKnots(v) < -0.1) vmgBox.classList.add('bad');
+  if (vKn > 0.1) vmgBox.classList.add('good');
+  else if (vKn < -0.1) vmgBox.classList.add('bad');
 
   if (cog == null) showStatus('Boat stopped (below 0.3 kn) – no course');
   else {
@@ -590,7 +649,18 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch((e) => console.warn('Service worker:', e));
 }
 
+// ---------------------------------------------------------------- Smooth redraw loop
+let lastFrame = 0;
+function frame(t) {
+  requestAnimationFrame(frame); // pauses automatically while the app is in the background
+  if (t - lastFrame < FRAME_MS || !state.pos) return;
+  lastFrame = t;
+  drawBoat();
+  render();
+}
+
 // ---------------------------------------------------------------- Start
+requestAnimationFrame(frame);
 drawRoute();
 startGps();
 keepAwake();

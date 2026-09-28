@@ -43,6 +43,10 @@ the start time or to reset it to the current boat position). Later legs start at
 There is deliberately no pure "arrival circle": it would switch too early in hairpin turns, while you still
 have a few metres to sail round the mark. If you never get close enough, use ⏭ (and ⏮ to go back).
 The values are `PASS_RADIUS_M` and `CUT_RADIUS_M` in `js/nav.js`.
+- **Smooth display**: phones deliver about one GPS fix per second; in between the boat is moved on by dead
+  reckoning (course × speed × time since the fix, max. 2 s) and redrawn ~10×/s, numbers glide to new values
+- **VMG second decimal** as a small grey digit (e.g. 5.4<sub>3</sub>) – only a trend indicator, phone GPS speed is
+  accurate to about ±0.1–0.2 kn; can be switched off in ⚙
 - Screen stays on (Wake Lock); app files and previously viewed map tiles work offline
 
 ## Project structure

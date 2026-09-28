@@ -44,6 +44,13 @@
         </span>
         <input id="opt-auto" type="checkbox" class="switch">
       </label>
+      <label class="switch-row">
+        <span>
+          Show second VMG decimal
+          <small>Small grey digit, e.g. 5.4<sub>3</sub>. Shows the trend while trimming – phone GPS is only accurate to about ±0.1–0.2 kn.</small>
+        </span>
+        <input id="opt-decimal" type="checkbox" class="switch">
+      </label>
       <button id="settings-close" type="button" class="sheet-done">Done</button>
     </div>
   </div>
@@ -54,7 +61,7 @@
     <div class="vmg">
       <div class="vmg-main">
         <div class="label">VMG to target</div>
-        <div class="big"><span id="v-vmg">–</span><small> kn</small></div>
+        <div class="big"><span id="v-vmg">–</span><span id="v-vmg2" class="dec2"></span><small> kn</small></div>
         <div id="v-target" class="target-info"></div>
         <div id="v-total" class="target-total"></div>
       </div>
