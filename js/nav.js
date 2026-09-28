@@ -92,7 +92,7 @@ export function toLocal(o, p) {
 
 // Waypoint passing: see passedWaypoint()
 export const PASS_RADIUS_M = 300; // safety radius: crossings farther away than this are ignored
-export const CUT_RADIUS_M = 30;   // on sharp turns the inner side of the bisector only counts this close
+export const CUT_RADIUS_M = 30;   // minimum for the inner side of the bisector (hairpins)
 
 const unit = (v) => {
   const l = Math.hypot(v.x, v.y);
@@ -111,8 +111,9 @@ const dot = (u, v) => u.x * v.x + u.y * v.y;
  * The waypoint counts as passed when the boat crosses that line from the
  * incoming side to the outgoing side, close enough to the waypoint:
  * - on the outer side of the turn (beyond the mark) within passRadius,
- * - on the inner side (between the two legs) within cutRadius only for sharp turns,
- *   so that tacking up a hairpin leg does not switch too early.
+ * - on the inner side (between the two legs) within a limit that shrinks with the
+ *   sharpness of the turn (down to cutRadius for hairpins), so that tacking up a
+ *   hairpin leg does not switch too early, but cutting a 90° corner still counts.
  */
 export function passedWaypoint(p0, p1, from, wp, next, { passRadius = PASS_RADIUS_M, cutRadius = CUT_RADIUS_M } = {}) {
   const a = unit(toLocal(wp, from)); // direction back along the incoming leg
@@ -120,13 +121,12 @@ export function passedWaypoint(p0, p1, from, wp, next, { passRadius = PASS_RADIU
   const c = (next && unit(toLocal(wp, next))) || { x: -a.x, y: -a.y };
 
   let u = unit({ x: a.x + c.x, y: a.y + c.y }); // bisector, pointing into the turn
-  let innerLimit = cutRadius;
-  if (!u) {
-    u = { x: -a.y, y: a.x };                   // straight on / finish: perpendicular line
-    innerLimit = passRadius;
-  } else if (dot(a, c) <= -0.5) {
-    innerLimit = passRadius;                   // gentle turn (course change <= 60°)
-  }
+  if (!u) u = { x: -a.y, y: a.x };              // straight on / finish: perpendicular line
+
+  // Inner side: the sharper the turn, the closer to the mark the crossing must be.
+  // passRadius · sin²(angle between the legs / 2): straight on 300 m, 90° turn 150 m,
+  // 135° turn 44 m, hairpin -> cutRadius (dot(a, c) = cos of the angle between the legs).
+  const innerLimit = Math.max(cutRadius, (passRadius * (1 - dot(a, c))) / 2);
 
   const sideA = Math.sign(cross(u, a));
   if (sideA === 0) return distance(p1, wp) < cutRadius; // degenerate: next lies on the incoming leg

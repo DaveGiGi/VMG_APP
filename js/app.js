@@ -138,6 +138,16 @@ function advance(auto) {
   }
 }
 
+/** Go back to the previous point (⏮ button). */
+function goBack() {
+  const r = state.route;
+  if (!r.points.length) { toast('No route set'); return; }
+  if (r.active === 0) { toast('Already at point 1'); return; }
+  const prev = Math.min(r.active, r.points.length) - 1; // from "finished" back to the last point
+  setRoute(setActive(r, prev));
+  toast(`⏮ Back → targeting point ${prev + 1}`);
+}
+
 /** Check whether the boat just rounded the active point (bisector gate, see nav.js). */
 function checkPassing(prev, pos) {
   let r = state.route;
@@ -370,7 +380,17 @@ function setDemo(on) {
   state.pos = null;
   state.vel = null;
   state.fixes = [];
-  if (!on) { showStatus('Demo stopped – waiting for GPS …'); return; }
+  if (!on) {
+    // Remove the simulated boat until the next real GPS fix arrives
+    state.acc = null;
+    boatMarker?.remove();
+    boatMarker = null;
+    headingLine.setLatLngs([]);
+    targetLine.setLatLngs([]);
+    render();
+    showStatus('Demo stopped – waiting for GPS …');
+    return;
+  }
 
   const wp = activePoint(state.route);
   if (!state.route.points.length) {
@@ -505,6 +525,7 @@ $('btn-center').addEventListener('click', () => {
   if (state.pos) map.setView(ptToLL(state.pos), Math.max(map.getZoom(), 13));
 });
 $('btn-demo').addEventListener('click', () => setDemo(!state.demo));
+$('btn-prev').addEventListener('click', goBack);
 $('btn-next').addEventListener('click', () => advance(false));
 $('btn-clear').addEventListener('click', () => {
   if (state.route.points.length && confirm('Delete all route points?')) setRoute(emptyRoute());

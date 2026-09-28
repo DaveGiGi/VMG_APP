@@ -29,6 +29,18 @@ test('90° turn: still approaching does not switch', () => {
   assert.equal(passedWaypoint(at(-20, -60), at(-20, -40), FROM, WP, EAST), false);
 });
 
+test('90° turn: missing the mark on the inside still switches', () => {
+  // sailing north 40 m / 100 m east of the mark (inner side of the turn)
+  assert.equal(passedWaypoint(at(40, -45), at(40, -35), FROM, WP, EAST), true);
+  assert.equal(passedWaypoint(at(100, -105), at(100, -95), FROM, WP, EAST), true);
+  // cutting the corner straight towards the next point, starting 100 m before the mark
+  assert.equal(passedWaypoint(at(80, -92), at(100, -90), FROM, WP, EAST), true);
+});
+
+test('90° turn: cutting the corner very early does not switch', () => {
+  assert.equal(passedWaypoint(at(200, -205), at(200, -195), FROM, WP, EAST), false);
+});
+
 test('90° turn: crossing far outside the safety radius does not switch', () => {
   assert.equal(passedWaypoint(at(-400, 390), at(-400, 410), FROM, WP, EAST), false);
 });

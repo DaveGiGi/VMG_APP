@@ -16,7 +16,7 @@ VMG = SOG × cos(COG − bearing to target)
 - Map (OpenStreetMap) with seamark overlay (OpenSeaMap)
 - **Route with several points**: add points by searching a place, typing coordinates (`54.32, 10.14`), tapping 🎯 then the map, or long-pressing the map
   - drag a point to move it, tap a leg to insert a point, tap a point to target or delete it
-  - ⏭ skips to the next point (e.g. when you stayed too far from a point)
+  - ⏭ skips to the next point (e.g. when you stayed too far from a point), ⏮ goes back to the previous one
 - **Automatic switching** to the next point when the mark is rounded (see below), with a message and vibration
 - Display: VMG to the active point, "Targeting point X/Y", distance to finish, deviation of COG from bearing, SOG, COG, bearing, distance (nm), ETA, GPS accuracy
 - Map lines: dark red dashed = boat to active point, dark red = remaining route, grey = done, dark green = where you'll be in 5 minutes
@@ -28,8 +28,10 @@ The app switches to the next point when the boat crosses the **bisector** of the
 (the line halfway between the incoming and outgoing leg), from the incoming to the outgoing side:
 
 - on the **outer side** of the turn (beyond the mark) within a **safety radius of 300 m**,
-- on the **inner side** (between the two legs) only within **30 m** for sharp turns, so tacking up a
-  hairpin leg does not switch too early; for gentle turns (≤ 60°) the full 300 m apply,
+- on the **inner side** (between the two legs) within a limit that shrinks with the sharpness of the turn:
+  300 m × sin²(angle between the legs / 2), at least 30 m – i.e. straight on 300 m, 90° turn 150 m,
+  135° turn 44 m, hairpin 30 m. So missing a 90° mark on the inside still switches, while tacking up a
+  hairpin leg does not switch too early,
 - the last point uses a finish line perpendicular to the last leg.
 
 The incoming leg of point 1 starts at the **start position**: where the boat was when the first point was set
@@ -37,7 +39,7 @@ The incoming leg of point 1 starts at the **start position**: where the boat was
 the start time or to reset it to the current boat position). Later legs start at the previous point.
 
 There is deliberately no pure "arrival circle": it would switch too early in hairpin turns, while you still
-have a few metres to sail round the mark. If you never get close enough, use ⏭.
+have a few metres to sail round the mark. If you never get close enough, use ⏭ (and ⏮ to go back).
 The values are `PASS_RADIUS_M` and `CUT_RADIUS_M` in `js/nav.js`.
 - Screen stays on (Wake Lock); app files and previously viewed map tiles work offline
 
