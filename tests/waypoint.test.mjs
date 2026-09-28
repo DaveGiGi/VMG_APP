@@ -3,7 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { destinationPoint, passedWaypoint, toLocal } from '../js/nav.js';
 import {
-  addPoint, emptyRoute, insertPoint, isFinished, nearestSegment, removePoint, sanitizeRoute, setActive,
+  addPoint, emptyRoute, insertPoint, isFinished, legStart, movePoint, nearestSegment, removePoint,
+  sanitizeRoute, setActive, setStart,
 } from '../js/route.js';
 
 const WP = { lat: 47.6, lon: 9.4 };
@@ -97,5 +98,19 @@ test('nearestSegment', () => {
 
 test('sanitizeRoute', () => {
   assert.deepEqual(sanitizeRoute(null), emptyRoute());
-  assert.deepEqual(sanitizeRoute({ points: [P(1), { lat: 'x' }], active: 7 }), { points: [P(1)], active: 1 });
+  assert.deepEqual(sanitizeRoute({ points: [P(1), { lat: 'x' }], active: 7 }), { points: [P(1)], active: 1, start: null });
+  const start = { lat: 47, lon: 9, t: 123 };
+  assert.deepEqual(sanitizeRoute({ points: [P(1)], active: 0, start }).start, start);
+  assert.equal(sanitizeRoute({ points: [P(1)], active: 0, start: { lat: null } }).start, null);
+});
+
+test('start position survives every route edit and is the first leg start', () => {
+  let r = setStart(addPoint(emptyRoute(), P(1)), { lat: 46.9, lon: 9 }, 42);
+  assert.deepEqual(r.start, { lat: 46.9, lon: 9, t: 42 });
+  assert.deepEqual(legStart(r), r.start);
+  r = insertPoint(addPoint(r, P(3)), 1, P(2));
+  r = movePoint(removePoint(addPoint(r, P(4)), 3), 0, { lat: 47.02 });
+  r = setActive(r, 1);
+  assert.deepEqual(r.start, { lat: 46.9, lon: 9, t: 42 });
+  assert.deepEqual(legStart(r), r.points[0]); // later legs start at the previous point
 });

@@ -5,8 +5,8 @@ import {
   knotsToMs, motionFromFixes, msToKnots, mToNm, passedWaypoint, vmg,
 } from './nav.js';
 import {
-  activePoint, addPoint, emptyRoute, insertPoint, isFinished, movePoint,
-  nearestSegment, removePoint, sanitizeRoute, setActive,
+  activePoint, addPoint, emptyRoute, insertPoint, isFinished, legStart, movePoint,
+  nearestSegment, removePoint, sanitizeRoute, setActive, setStart,
 } from './route.js';
 
 const L = window.L; // Leaflet is loaded as a classic <script>
@@ -23,8 +23,7 @@ const state = {
   acc: null,          // GPS accuracy in m
   vel: null,          // smoothed velocity vector {ve, vn} in m/s (east/north)
   fixes: [],          // recent GPS fixes for the fallback calculation
-  route: loadRoute(), // {points, active} – see route.js
-  legStart: null,     // boat position when the first leg started (the first point has no predecessor)
+  route: loadRoute(), // {points, active, start} – see route.js
   follow: true,       // map follows the boat
   picking: false,     // "tap map to add points" mode
   demo: false,
@@ -96,13 +95,12 @@ function loadRoute() {
     const r = sanitizeRoute(JSON.parse(localStorage.getItem(ROUTE_KEY)));
     if (r.points.length) return r;
     const old = JSON.parse(localStorage.getItem(OLD_TARGET_KEY));
-    if (old && Number.isFinite(old.lat) && Number.isFinite(old.lon)) return { points: [old], active: 0 };
+    if (old && Number.isFinite(old.lat) && Number.isFinite(old.lon)) return sanitizeRoute({ points: [old], active: 0 });
   } catch { /* storage unavailable or broken – start empty */ }
   return emptyRoute();
 }
 
 function setRoute(r) {
-  if (activePoint(r) !== activePoint(state.route)) state.legStart = state.pos;
   state.route = r;
   try {
     localStorage.setItem(ROUTE_KEY, JSON.stringify(r));
@@ -116,7 +114,10 @@ function setRoute(r) {
 
 function addWaypoint(p) {
   const first = state.route.points.length === 0;
-  setRoute(addPoint(state.route, p));
+  let r = addPoint(state.route, p);
+  // Remember where we started (reference for the first leg); without GPS yet it is set at the first fix
+  if (!r.start && state.pos) r = setStart(r, state.pos);
+  setRoute(r);
   if (first && state.pos) {
     map.fitBounds([[state.pos.lat, state.pos.lon], [p.lat, p.lon]], { padding: [60, 60], maxZoom: 15 });
     state.follow = false;
@@ -139,12 +140,11 @@ function advance(auto) {
 
 /** Check whether the boat just rounded the active point (bisector gate, see nav.js). */
 function checkPassing(prev, pos) {
-  const r = state.route;
+  let r = state.route;
   const wp = activePoint(r);
   if (!wp) return;
-  if (!state.legStart) state.legStart = prev;
-  const from = r.active > 0 ? r.points[r.active - 1] : state.legStart;
-  if (passedWaypoint(prev, pos, from, wp, r.points[r.active + 1] ?? null)) advance(true);
+  if (!r.start) setRoute(r = setStart(r, prev)); // route was set before GPS was available
+  if (passedWaypoint(prev, pos, legStart(r), wp, r.points[r.active + 1] ?? null)) advance(true);
 }
 
 function wpIcon(i) {
@@ -153,13 +153,25 @@ function wpIcon(i) {
 }
 
 function drawRoute() {
-  const { points, active } = state.route;
+  const { points, active, start } = state.route;
   const ll = points.map(ptToLL);
-  donePath.setLatLngs(ll.slice(0, Math.min(active, points.length - 1) + 1));
+  // Grey: from the start position through the points already done
+  donePath.setLatLngs([...(start ? [ptToLL(start)] : []), ...ll.slice(0, Math.min(active, points.length - 1) + 1)]);
   routePath.setLatLngs(ll.slice(active));
   hitPath.setLatLngs(ll);
 
   markers.clearLayers();
+  if (start && points.length) {
+    const time = start.t ? new Date(start.t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+    const s = L.marker(ptToLL(start), {
+      icon: L.divIcon({ className: '', iconSize: [24, 24], iconAnchor: [12, 12], html: '<div class="wp wp-start">S</div>' }),
+    });
+    s.bindPopup(() => popupButtons(
+      state.pos ? [['Set start to boat position', () => { setRoute(setStart(state.route, state.pos)); toast('Start set to boat position'); }]] : [],
+      `Start${time ? ` (${time})` : ''}`,
+    ));
+    markers.addLayer(s);
+  }
   points.forEach((p, i) => {
     const m = L.marker(ptToLL(p), { icon: wpIcon(i), draggable: true, zIndexOffset: i === active ? 500 : 0 });
     m.on('dragend', () => {
@@ -358,7 +370,6 @@ function setDemo(on) {
   state.pos = null;
   state.vel = null;
   state.fixes = [];
-  state.legStart = null;
   if (!on) { showStatus('Demo stopped – waiting for GPS …'); return; }
 
   const wp = activePoint(state.route);
@@ -369,6 +380,8 @@ function setDemo(on) {
     // Boat would start (almost) on the target -> start 3 nm south-west of it
     pos = destinationPoint(wp, 225, 3 * 1852);
   }
+  // The simulated trip starts here, so this is the start of the route
+  if (state.route.points.length && state.route.active === 0) setRoute(setStart(state.route, pos));
   state.follow = true;
   let last = Date.now();
   const tick = () => {
