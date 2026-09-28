@@ -81,3 +81,63 @@ export function motionFromFixes(a, b) {
   const d = distance(a, b);
   return { sog: d / dt, cog: bearing(a, b) };
 }
+
+/** Flat x/y in metres (east/north) of p relative to origin o. Accurate enough within a few km. */
+export function toLocal(o, p) {
+  return {
+    x: toRad(p.lon - o.lon) * Math.cos(toRad(o.lat)) * EARTH_RADIUS_M,
+    y: toRad(p.lat - o.lat) * EARTH_RADIUS_M,
+  };
+}
+
+// Waypoint passing: see passedWaypoint()
+export const PASS_RADIUS_M = 300; // safety radius: crossings farther away than this are ignored
+export const CUT_RADIUS_M = 30;   // on sharp turns the inner side of the bisector only counts this close
+
+const unit = (v) => {
+  const l = Math.hypot(v.x, v.y);
+  return l > 1e-9 ? { x: v.x / l, y: v.y / l } : null;
+};
+const cross = (u, v) => u.x * v.y - u.y * v.x;
+const dot = (u, v) => u.x * v.x + u.y * v.y;
+
+/**
+ * Has the boat, moving from p0 to p1, passed (rounded) waypoint `wp`?
+ *
+ * A line through the waypoint is used as the "gate":
+ * - normally the bisector of the turn between the incoming leg (from -> wp)
+ *   and the outgoing leg (wp -> next),
+ * - for the last waypoint (next = null) a finish line perpendicular to the incoming leg.
+ * The waypoint counts as passed when the boat crosses that line from the
+ * incoming side to the outgoing side, close enough to the waypoint:
+ * - on the outer side of the turn (beyond the mark) within passRadius,
+ * - on the inner side (between the two legs) within cutRadius only for sharp turns,
+ *   so that tacking up a hairpin leg does not switch too early.
+ */
+export function passedWaypoint(p0, p1, from, wp, next, { passRadius = PASS_RADIUS_M, cutRadius = CUT_RADIUS_M } = {}) {
+  const a = unit(toLocal(wp, from)); // direction back along the incoming leg
+  if (!a) return distance(p1, wp) < cutRadius;
+  const c = (next && unit(toLocal(wp, next))) || { x: -a.x, y: -a.y };
+
+  let u = unit({ x: a.x + c.x, y: a.y + c.y }); // bisector, pointing into the turn
+  let innerLimit = cutRadius;
+  if (!u) {
+    u = { x: -a.y, y: a.x };                   // straight on / finish: perpendicular line
+    innerLimit = passRadius;
+  } else if (dot(a, c) <= -0.5) {
+    innerLimit = passRadius;                   // gentle turn (course change <= 60°)
+  }
+
+  const sideA = Math.sign(cross(u, a));
+  if (sideA === 0) return distance(p1, wp) < cutRadius; // degenerate: next lies on the incoming leg
+
+  const q0 = toLocal(wp, p0);
+  const q1 = toLocal(wp, p1);
+  const s0 = cross(u, q0) * sideA;
+  const s1 = cross(u, q1) * sideA;
+  if (!(s0 >= 0 && s1 < 0)) return false;      // must cross from the incoming to the outgoing side
+
+  const t = s0 / (s0 - s1);
+  const k = dot(u, { x: q0.x + t * (q1.x - q0.x), y: q0.y + t * (q1.y - q0.y) });
+  return k >= 0 ? k <= innerLimit : -k <= passRadius;
+}

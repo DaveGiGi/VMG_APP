@@ -9,6 +9,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; } /* otherwise e.g. `.demo { display: grid }` would win */
 
 html, body {
   margin: 0;
@@ -172,7 +173,54 @@ html, body {
 .demo { margin-top: 10px; display: grid; gap: 6px; font-size: 14px; }
 .demo input { width: 100%; }
 
+.target-info { font-size: 13px; font-weight: 600; color: var(--accent); margin-top: 4px; }
+.target-total { font-size: 12px; color: var(--muted); }
+
+/* Message when a point is reached / skipped */
+.toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--panel-h, 0px) + 28px);
+  z-index: 1100;
+  max-width: 90vw;
+  background: var(--accent);
+  color: #111;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .4);
+}
+
 /* ---------- Map symbols ---------- */
+.wp {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: #7f1d1d;
+  color: #fff;
+  font: 700 13px/24px system-ui, sans-serif;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .5);
+}
+.wp-active { background: var(--accent); color: #111; transform: scale(1.25); }
+.wp-done { background: #6b7280; }
+
+.wp-popup { min-width: 170px; }
+.wp-popup-title { font-weight: 600; margin-bottom: 4px; }
+.wp-popup button {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+}
 .boat-icon {
   width: 36px;
   height: 36px;

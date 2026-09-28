@@ -15,20 +15,22 @@
 
   <!-- Search at the top -->
   <form id="search" class="search" autocomplete="off">
-    <input id="search-input" type="search" placeholder="Search target (place, harbour …)" aria-label="Search target">
+    <input id="search-input" type="search" placeholder="Search place to add point …" aria-label="Search place to add point">
     <button type="submit" aria-label="Search">🔍</button>
     <ul id="search-results" class="search-results" hidden></ul>
   </form>
 
   <!-- Buttons on the right -->
   <div class="fab-col">
-    <button id="btn-pick" class="fab" title="Tap map to set target">🎯</button>
+    <button id="btn-pick" class="fab" title="Tap map to add points">🎯</button>
     <button id="btn-center" class="fab" title="Center on boat">⌖</button>
+    <button id="btn-next" class="fab" title="Skip to next point">⏭</button>
     <button id="btn-demo" class="fab" title="Demo mode">▶︎</button>
-    <button id="btn-clear" class="fab" title="Clear target">✕</button>
+    <button id="btn-clear" class="fab" title="Delete route">✕</button>
   </div>
 
-  <div id="hint" class="hint" hidden>Tap the map to set the target</div>
+  <div id="hint" class="hint" hidden>Tap the map to add points – 🎯 again when done</div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <!-- Display at the bottom -->
   <section class="panel">
@@ -36,6 +38,8 @@
       <div class="vmg-main">
         <div class="label">VMG to target</div>
         <div class="big"><span id="v-vmg">–</span><small> kn</small></div>
+        <div id="v-target" class="target-info"></div>
+        <div id="v-total" class="target-total"></div>
       </div>
       <div class="vmg-side">
         <div class="label">Deviation</div>
@@ -59,6 +63,13 @@
       </label>
       <label>Speed <output id="o-speed">6.0</output> kn
         <input id="i-speed" type="range" min="0" max="15" step="0.5" value="6">
+      </label>
+      <label>Time
+        <select id="i-sim">
+          <option value="1">real time</option>
+          <option value="10">×10</option>
+          <option value="60">×60</option>
+        </select>
       </label>
     </div>
   </section>
