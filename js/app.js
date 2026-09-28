@@ -13,6 +13,8 @@ const L = window.L; // Leaflet is loaded as a classic <script>
 const $ = (id) => document.getElementById(id);
 
 const ROUTE_KEY = 'vmg.route';
+const SETTINGS_KEY = 'vmg.settings';
+const DEFAULT_SETTINGS = { autoAdvance: true }; // switch to the next point automatically when rounded
 const OLD_TARGET_KEY = 'vmg.target'; // v0.1 stored a single target
 const SMOOTHING = 0.35;        // 0..1, higher = reacts faster but jitters more
 const MIN_SOG_FOR_COG_MS = knotsToMs(0.3); // below this, GPS course is just noise
@@ -24,6 +26,8 @@ const state = {
   vel: null,          // smoothed velocity vector {ve, vn} in m/s (east/north)
   fixes: [],          // recent GPS fixes for the fallback calculation
   route: loadRoute(), // {points, active, start} – see route.js
+  settings: loadSettings(),
+  passedNotified: null, // index of the point whose "passed" message was shown (manual mode)
   follow: true,       // map follows the boat
   picking: false,     // "tap map to add points" mode
   demo: false,
@@ -101,6 +105,7 @@ function loadRoute() {
 }
 
 function setRoute(r) {
+  if (r.active !== state.route.active) state.passedNotified = null;
   state.route = r;
   try {
     localStorage.setItem(ROUTE_KEY, JSON.stringify(r));
@@ -154,8 +159,42 @@ function checkPassing(prev, pos) {
   const wp = activePoint(r);
   if (!wp) return;
   if (!r.start) setRoute(r = setStart(r, prev)); // route was set before GPS was available
-  if (passedWaypoint(prev, pos, legStart(r), wp, r.points[r.active + 1] ?? null)) advance(true);
+  if (!passedWaypoint(prev, pos, legStart(r), wp, r.points[r.active + 1] ?? null)) return;
+  if (state.settings.autoAdvance) {
+    advance(true);
+  } else if (state.passedNotified !== r.active) {
+    // Manual mode: only tell the sailor, once per point
+    state.passedNotified = r.active;
+    const last = r.active === r.points.length - 1;
+    toast(`✓ Point ${r.active + 1} passed${last ? '' : ' – tap ⏭ for the next point'}`, true);
+  }
 }
+
+// ---------------------------------------------------------------- Options
+function loadSettings() {
+  try {
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY)) };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+function saveSettings() {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings)); } catch { /* not critical */ }
+}
+
+$('btn-settings').addEventListener('click', () => {
+  $('opt-auto').checked = state.settings.autoAdvance;
+  $('settings').hidden = false;
+});
+$('opt-auto').addEventListener('change', () => {
+  state.settings.autoAdvance = $('opt-auto').checked;
+  saveSettings();
+  render();
+});
+$('settings-close').addEventListener('click', () => { $('settings').hidden = true; });
+// Tap on the dark background closes the sheet as well
+$('settings').addEventListener('click', (e) => { if (e.target === $('settings')) $('settings').hidden = true; });
 
 function wpIcon(i) {
   const cls = i < state.route.active ? 'wp wp-done' : i === state.route.active ? 'wp wp-active' : 'wp';
@@ -476,7 +515,8 @@ function render() {
     info = 'Route finished';
   }
   $('v-target').textContent = info;
-  $('v-total').textContent = total;
+  const manual = wp && !state.settings.autoAdvance ? 'manual switching' : '';
+  $('v-total').textContent = [manual, total].filter(Boolean).join(' · ');
 
   if (!state.pos || !wp) {
     for (const id of ['v-vmg', 'v-brg', 'v-dtw', 'v-eta']) $(id).textContent = '–';

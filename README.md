@@ -18,6 +18,8 @@ VMG = SOG × cos(COG − bearing to target)
   - drag a point to move it, tap a leg to insert a point, tap a point to target or delete it
   - ⏭ skips to the next point (e.g. when you stayed too far from a point), ⏮ goes back to the previous one
 - **Automatic switching** to the next point when the mark is rounded (see below), with a message and vibration
+- **Options** (⚙ in the display panel): "Auto-switch to next point" can be turned off – then only ⏭/⏮ change
+  the point; you still get a one-time "Point X passed" message. Saved in the browser (`vmg.settings`).
 - Display: VMG to the active point, "Targeting point X/Y", distance to finish, deviation of COG from bearing, SOG, COG, bearing, distance (nm), ETA, GPS accuracy
 - Map lines: dark red dashed = boat to active point, dark red = remaining route, grey = done, dark green = where you'll be in 5 minutes
 - Demo mode (▶︎) with sliders for course and speed plus time-lapse (×10/×60) – for testing on land

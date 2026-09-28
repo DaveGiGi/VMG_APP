@@ -33,8 +33,24 @@
   <div id="hint" class="hint" hidden>Tap the map to add points – 🎯 again when done</div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
+  <!-- Options (opened with ⚙ in the panel) -->
+  <div id="settings" class="sheet" hidden>
+    <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <h2 id="settings-title">Options</h2>
+      <label class="switch-row">
+        <span>
+          Auto-switch to next point
+          <small>Switch automatically when a point is rounded. Off: only ⏭ / ⏮ change the point – you still get a message when a point is passed.</small>
+        </span>
+        <input id="opt-auto" type="checkbox" class="switch">
+      </label>
+      <button id="settings-close" type="button" class="sheet-done">Done</button>
+    </div>
+  </div>
+
   <!-- Display at the bottom -->
   <section class="panel">
+    <button id="btn-settings" class="panel-gear" type="button" title="Options" aria-label="Options">⚙</button>
     <div class="vmg">
       <div class="vmg-main">
         <div class="label">VMG to target</div>
