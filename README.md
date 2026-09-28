@@ -14,10 +14,27 @@ VMG = SOG × cos(COG − bearing to target)
 ## Features
 
 - Map (OpenStreetMap) with seamark overlay (OpenSeaMap)
-- Set target: search a place, type coordinates (`54.32, 10.14`), tap 🎯 then the map, or long-press the map; the target flag can be dragged
-- Display: VMG, deviation of COG from bearing, SOG, COG, bearing, distance (nm), ETA, GPS accuracy
-- Map lines: dark red dashed = straight line to target, dark green = where you'll be in 5 minutes
-- Demo mode (▶︎) with sliders for course and speed – for testing on land
+- **Route with several points**: add points by searching a place, typing coordinates (`54.32, 10.14`), tapping 🎯 then the map, or long-pressing the map
+  - drag a point to move it, tap a leg to insert a point, tap a point to target or delete it
+  - ⏭ skips to the next point (e.g. when you stayed too far from a point)
+- **Automatic switching** to the next point when the mark is rounded (see below), with a message and vibration
+- Display: VMG to the active point, "Targeting point X/Y", distance to finish, deviation of COG from bearing, SOG, COG, bearing, distance (nm), ETA, GPS accuracy
+- Map lines: dark red dashed = boat to active point, dark red = remaining route, grey = done, dark green = where you'll be in 5 minutes
+- Demo mode (▶︎) with sliders for course and speed plus time-lapse (×10/×60) – for testing on land
+
+## When is a point reached?
+
+The app switches to the next point when the boat crosses the **bisector** of the turn at that point
+(the line halfway between the incoming and outgoing leg), from the incoming to the outgoing side:
+
+- on the **outer side** of the turn (beyond the mark) within a **safety radius of 300 m**,
+- on the **inner side** (between the two legs) only within **30 m** for sharp turns, so tacking up a
+  hairpin leg does not switch too early; for gentle turns (≤ 60°) the full 300 m apply,
+- the last point uses a finish line perpendicular to the last leg.
+
+There is deliberately no pure "arrival circle": it would switch too early in hairpin turns, while you still
+have a few metres to sail round the mark. If you never get close enough, use ⏭.
+The values are `PASS_RADIUS_M` and `CUT_RADIUS_M` in `js/nav.js`.
 - Screen stays on (Wake Lock); app files and previously viewed map tiles work offline
 
 ## Project structure
@@ -26,11 +43,13 @@ VMG = SOG × cos(COG − bearing to target)
 |---|---|
 | `index.html` | Page layout |
 | `css/style.css` | Styling |
-| `js/nav.js` | Navigation math (distance, bearing, VMG, ETA) – no browser dependency |
-| `js/app.js` | Map, GPS, search, display, demo |
+| `js/nav.js` | Navigation math (distance, bearing, VMG, ETA, waypoint passing) – no browser dependency |
+| `js/route.js` | Route editing (add, insert, move, delete, active point) – pure functions |
+| `js/app.js` | Map, GPS, search, route UI, display, demo |
 | `sw.js` | Service worker (offline cache) |
 | `manifest.webmanifest` | Makes the page installable as an app |
-| `tests/nav.test.mjs` | Tests for `nav.js` |
+| `tests/nav.test.mjs` | Tests for the basic navigation math |
+| `tests/waypoint.test.mjs` | Tests for waypoint passing and route editing |
 
 No build step, no dependencies – Leaflet is loaded from a CDN.
 
