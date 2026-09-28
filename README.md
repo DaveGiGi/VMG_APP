@@ -32,6 +32,10 @@ The app switches to the next point when the boat crosses the **bisector** of the
   hairpin leg does not switch too early; for gentle turns (≤ 60°) the full 300 m apply,
 - the last point uses a finish line perpendicular to the last leg.
 
+The incoming leg of point 1 starts at the **start position**: where the boat was when the first point was set
+(or at the first GPS fix / demo start). It is saved with the route, shown as a blue **S** on the map (tap it to see
+the start time or to reset it to the current boat position). Later legs start at the previous point.
+
 There is deliberately no pure "arrival circle": it would switch too early in hairpin turns, while you still
 have a few metres to sail round the mark. If you never get close enough, use ⏭.
 The values are `PASS_RADIUS_M` and `CUT_RADIUS_M` in `js/nav.js`.
