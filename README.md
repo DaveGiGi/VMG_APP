@@ -100,6 +100,13 @@ Browsers only allow GPS over HTTPS – GitHub Pages provides that for free.
 4. After ~1 minute the app is live at `https://<username>.github.io/VMG_APP/`.
 5. On the Android phone open it in Chrome → allow location → menu ⋮ → **Add to Home screen**.
 
+## iPhone (Safari)
+
+Open the link in Safari → Share button → **Add to Home Screen** (there is no install button like on Android).
+Notes for iOS: no vibration in web apps; keeping the screen on works reliably from about iOS 18.4 (otherwise set
+Auto-Lock to "Never"); Safari and the home-screen app have **separate storage** – use only the home-screen app.
+Chrome on iOS uses Safari's engine, so the same applies.
+
 ## Limitations of version 1
 
 - No wind or current: VMG is towards the target (strictly VMC), not towards the wind. Without wind data the app cannot judge whether a course is optimal.
