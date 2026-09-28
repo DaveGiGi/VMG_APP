@@ -22,6 +22,7 @@ const DEFAULT_SETTINGS = {
 const FRAME_MS = 100;      // redraw ~10×/s – smooth enough and easy on the battery
 const MAX_PREDICT_S = 2;   // stop extrapolating if no new fix arrives for this long
 const EASE = 0.3;          // how fast displayed numbers follow new values (0..1 per frame)
+const GOOD_ACCURACY_M = 50; // fixes less accurate than this (GPS warm-up) are shown but not used for navigation
 const OLD_TARGET_KEY = 'vmg.target'; // v0.1 stored a single target
 const SMOOTHING = 0.35;        // 0..1, higher = reacts faster but jitters more
 const MIN_SOG_FOR_COG_MS = knotsToMs(0.3); // below this, GPS course is just noise
@@ -35,6 +36,9 @@ const state = {
   route: loadRoute(), // {points, active, start} – see route.js
   settings: loadSettings(),
   passedNotified: null, // index of the point whose "passed" message was shown (manual mode)
+  gpsGood: false,     // last fix accurate enough for navigation (see GOOD_ACCURACY_M)
+  lastGood: null,     // last accurate fix – used to detect passing a point
+  mapTouched: false,  // user has touched the map -> don't move the view automatically
   fixTime: null,      // performance.now() of the last fix, for dead reckoning
   timeFactor: 1,      // demo time-lapse factor (1 with real GPS)
   shown: { vmg: null, sog: null }, // eased values currently on screen
@@ -76,6 +80,7 @@ const boatIcon = L.divIcon({
 });
 
 let boatMarker = null;
+let accCircle = null;
 // Dark, thick lines so they stay visible in sunlight
 const donePath = L.polyline([], { color: '#6b7280', weight: 2, opacity: 0.8, dashArray: '4 6' }).addTo(map);
 const routePath = L.polyline([], { color: '#7f1d1d', weight: 3, opacity: 0.85 }).addTo(map);
@@ -85,7 +90,17 @@ const headingLine = L.polyline([], { color: '#166534', weight: 5, opacity: 0.95 
 const hitPath = L.polyline([], { color: '#000', weight: 24, opacity: 0 }).addTo(map);
 const markers = L.layerGroup().addTo(map);
 
-map.on('dragstart', () => { state.follow = false; });
+// As soon as the user touches the map, stop following the boat so the map doesn't move under
+// the finger (e.g. while placing points). ⌖ turns following back on.
+map.getContainer().addEventListener('pointerdown', () => {
+  state.mapTouched = true;
+  setFollow(false);
+});
+
+function setFollow(on) {
+  state.follow = on;
+  $('btn-center').classList.toggle('active', on);
+}
 
 map.on('click', (e) => {
   if (state.picking) addWaypoint({ lat: e.latlng.lat, lon: e.latlng.lng });
@@ -131,11 +146,12 @@ function addWaypoint(p) {
   const first = state.route.points.length === 0;
   let r = addPoint(state.route, p);
   // Remember where we started (reference for the first leg); without GPS yet it is set at the first fix
-  if (!r.start && state.pos) r = setStart(r, state.pos);
+  // (only from an accurate fix – during GPS warm-up it is set later, at the first accurate fix)
+  if (!r.start && state.lastGood) r = setStart(r, state.lastGood);
   setRoute(r);
   if (first && state.pos) {
     map.fitBounds([[state.pos.lat, state.pos.lon], [p.lat, p.lon]], { padding: [60, 60], maxZoom: 15 });
-    state.follow = false;
+    setFollow(false);
   }
 }
 
@@ -229,7 +245,7 @@ function drawRoute() {
       icon: L.divIcon({ className: '', iconSize: [24, 24], iconAnchor: [12, 12], html: '<div class="wp wp-start">S</div>' }),
     });
     s.bindPopup(() => popupButtons(
-      state.pos ? [['Set start to boat position', () => { setRoute(setStart(state.route, state.pos)); toast('Start set to boat position'); }]] : [],
+      state.lastGood ? [['Set start to boat position', () => { setRoute(setStart(state.route, state.lastGood)); toast('Start set to boat position'); }]] : [],
       `Start${time ? ` (${time})` : ''}`,
     ));
     markers.addLayer(s);
@@ -299,7 +315,7 @@ $('search').addEventListener('submit', async (e) => {
     list.hidden = true;
     $('search-input').blur();
     map.setView([p.lat, p.lon], Math.max(map.getZoom(), 13));
-    state.follow = false;
+    setFollow(false);
   };
 
   // Coordinates typed directly, e.g. "54.32, 10.14"
@@ -332,9 +348,23 @@ $('search').addEventListener('submit', async (e) => {
 // ---------------------------------------------------------------- Position & motion
 /** Process a new position plus speed/course if the device provides them. */
 function updateMotion(pos, sogMs, cogDeg, acc, t) {
-  const prev = state.pos;
   state.pos = pos;
   state.acc = acc;
+
+  // While GPS is warming up (network location, ±100 m and more) positions jump around:
+  // show them, but don't use them for course/speed, the start position or passing points.
+  state.gpsGood = !(acc > GOOD_ACCURACY_M);
+  if (!state.gpsGood) {
+    state.vel = null;
+    state.fixes = [];
+    state.fixTime = null;
+    state.lastGood = null;
+    drawBoat();
+    render();
+    return;
+  }
+  const prev = state.lastGood;
+  state.lastGood = pos;
   state.fixTime = performance.now();
 
   // Fallback: derive speed/course from recent fixes (>= 3 s apart)
@@ -397,13 +427,18 @@ function drawBoat() {
   const wp = activePoint(state.route);
   if (!boatMarker) {
     boatMarker = L.marker(ll, { icon: boatIcon, zIndexOffset: 1000, interactive: false }).addTo(map);
-    if (wp) {
-      map.fitBounds([ll, ptToLL(wp)], { padding: [60, 60], maxZoom: 15 });
-    } else {
-      map.setView(ll, 14);
+    // Jump to the boat on the first fix – but not if the user is already working on the map
+    if (!state.mapTouched) {
+      if (wp) map.fitBounds([ll, ptToLL(wp)], { padding: [60, 60], maxZoom: 15 });
+      else map.setView(ll, 14);
     }
   } else {
     boatMarker.setLatLng(ll);
+  }
+  // Blue circle: how accurate the GPS position is
+  if (Number.isFinite(state.acc)) {
+    if (!accCircle) accCircle = L.circle(ll, { radius: state.acc, color: '#2563eb', weight: 1, fillOpacity: 0.08, interactive: false }).addTo(map);
+    accCircle.setLatLng(ll).setRadius(state.acc);
   }
   const { sog, cog } = currentSogCog();
   const rot = document.getElementById('boat-rot');
@@ -413,7 +448,7 @@ function drawBoat() {
   headingLine.setLatLngs(cog == null ? [] : [ll, ptToLL(destinationPoint(p, cog, sog * 300))]);
   targetLine.setLatLngs(wp ? [ll, ptToLL(wp)] : []);
 
-  if (state.follow) map.panTo(ll, { animate: false });
+  if (state.follow && !state.picking) map.panTo(ll, { animate: false });
 }
 
 // ---------------------------------------------------------------- GPS
@@ -451,6 +486,7 @@ function setDemo(on) {
   // Start fresh so the jump between real and simulated position is not seen as movement
   let pos = state.pos ?? { lat: map.getCenter().lat, lon: map.getCenter().lng };
   state.pos = null;
+  state.lastGood = null;
   state.vel = null;
   state.fixes = [];
   state.timeFactor = 1;
@@ -461,6 +497,8 @@ function setDemo(on) {
     state.acc = null;
     boatMarker?.remove();
     boatMarker = null;
+    accCircle?.remove();
+    accCircle = null;
     headingLine.setLatLngs([]);
     targetLine.setLatLngs([]);
     render();
@@ -478,7 +516,7 @@ function setDemo(on) {
   }
   // The simulated trip starts here, so this is the start of the route
   if (state.route.points.length && state.route.active === 0) setRoute(setStart(state.route, pos));
-  state.follow = true;
+  setFollow(true);
   let last = Date.now();
   const tick = () => {
     const now = Date.now();
@@ -557,7 +595,7 @@ function render() {
   const vmgBox = document.querySelector('.vmg');
   vmgBox.classList.remove('good', 'bad');
 
-  $('v-sog').textContent = pos ? fmt(ease('sog', msToKnots(sog))) : '–';
+  $('v-sog').textContent = pos && state.gpsGood ? fmt(ease('sog', msToKnots(sog))) : '–';
   $('v-cog').textContent = fmtDeg(cog);
   $('v-acc').textContent = Number.isFinite(state.acc) ? Math.round(state.acc) : '–';
 
@@ -573,6 +611,18 @@ function render() {
   $('v-target').textContent = info;
   const manual = wp && !state.settings.autoAdvance ? 'manual switching' : '';
   $('v-total').textContent = [manual, total].filter(Boolean).join(' · ');
+
+  if (state.pos && !state.gpsGood) {
+    // GPS warm-up: rough position only – distance/bearing are still useful, VMG/ETA are not
+    state.shown.vmg = null;
+    showVmg(null);
+    $('v-brg').textContent = wp ? fmtDeg(bearing(pos, wp)) : '–';
+    $('v-dtw').textContent = wp ? fmtNm(distance(pos, wp)) : '–';
+    $('v-eta').textContent = '–';
+    $('v-eta-rest').textContent = '';
+    showStatus(`Waiting for accurate GPS … ±${Math.round(state.acc)} m`);
+    return;
+  }
 
   if (!pos || !wp) {
     for (const id of ['v-brg', 'v-dtw', 'v-eta']) $(id).textContent = '–';
@@ -620,14 +670,20 @@ function render() {
 // ---------------------------------------------------------------- Buttons
 $('btn-pick').addEventListener('click', () => setPicking(!state.picking));
 $('btn-center').addEventListener('click', () => {
-  state.follow = true;
+  setFollow(true);
   if (state.pos) map.setView(ptToLL(state.pos), Math.max(map.getZoom(), 13));
 });
 $('btn-demo').addEventListener('click', () => setDemo(!state.demo));
 $('btn-prev').addEventListener('click', goBack);
 $('btn-next').addEventListener('click', () => advance(false));
 $('btn-clear').addEventListener('click', () => {
-  if (state.route.points.length && confirm('Delete all route points?')) setRoute(emptyRoute());
+  const n = state.route.points.length;
+  if (!n) { toast('No points to delete'); return; }
+  // Deleting cannot be undone -> confirm twice
+  if (!confirm(`Delete all ${n} route point${n > 1 ? 's' : ''}?`)) return;
+  if (!confirm('Really delete the whole route? This cannot be undone.')) return;
+  setRoute(emptyRoute());
+  toast('Route deleted');
 });
 document.addEventListener('click', (e) => {
   if (!e.target.closest('#search')) $('search-results').hidden = true;
@@ -661,6 +717,7 @@ function frame(t) {
 
 // ---------------------------------------------------------------- Start
 requestAnimationFrame(frame);
+setFollow(true);
 drawRoute();
 startGps();
 keepAwake();

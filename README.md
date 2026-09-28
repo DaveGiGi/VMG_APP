@@ -47,6 +47,13 @@ The values are `PASS_RADIUS_M` and `CUT_RADIUS_M` in `js/nav.js`.
   reckoning (course × speed × time since the fix, max. 2 s) and redrawn ~10×/s, numbers glide to new values
 - **VMG second decimal** as a small grey digit (e.g. 5.4<sub>3</sub>) – only a trend indicator, phone GPS speed is
   accurate to about ±0.1–0.2 kn; can be switched off in ⚙
+- **GPS warm-up**: the first positions after opening the app are often rough (network location, ±100 m and
+  more). Fixes less accurate than 50 m are shown (with a blue accuracy circle and "Waiting for accurate GPS …")
+  but not used for speed/course, VMG, the start position or passing points
+- **Map stays put while you work on it**: touching the map stops it from following the boat; ⌖ (orange when
+  active) turns following back on
+- **Route and settings are stored only on this device** (browser storage) – every phone works independently;
+  ✕ deletes the whole route after two confirmations
 - Screen stays on (Wake Lock); app files and previously viewed map tiles work offline
 
 ## Project structure
