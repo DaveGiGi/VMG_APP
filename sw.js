@@ -1,7 +1,7 @@
 // Service worker: makes the app work offline.
 // - App files: network first (so updates arrive), cache as fallback.
 // - Map tiles: cache first, then network (areas viewed before work offline).
-const APP_CACHE = 'vmg-app-v8';
+const APP_CACHE = 'vmg-app-v9';
 const TILE_CACHE = 'vmg-tiles-v1';
 const MAX_TILES = 3000;
 
@@ -14,6 +14,9 @@ const APP_FILES = [
   'js/route.js',
   'manifest.webmanifest',
   'icons/icon.svg',
+  'icons/apple-touch-icon.png',
+  'icons/icon-192.png',
+  'icons/icon-512.png',
   'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css',
   'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js',
 ];
