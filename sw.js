@@ -1,13 +1,14 @@
 // Service worker: makes the app work offline.
 // - App files: network first (so updates arrive), cache as fallback.
 // - Map tiles: cache first, then network (areas viewed before work offline).
-const APP_CACHE = 'vmg-app-v9';
+const APP_CACHE = 'vmg-app-v10';
 const TILE_CACHE = 'vmg-tiles-v1';
 const MAX_TILES = 3000;
 
 const APP_FILES = [
   './',
   'index.html',
+  'about.html',
   'css/style.css',
   'js/app.js',
   'js/nav.js',

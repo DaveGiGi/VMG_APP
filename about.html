@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b2239">
+  <title>About &amp; Legal – VMG Sailing</title>
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="page">
+  <header class="page-head">
+    <a class="page-back" href="./">← Back to the app</a>
+  </header>
+
+  <main class="page-body">
+    <div class="page-title">
+      <img src="icons/icon.svg" alt="" width="56" height="56">
+      <div>
+        <h1>VMG Sailing</h1>
+        <p class="muted">Version 0.9.0 (beta) · Last updated 28 September 2026</p>
+      </div>
+    </div>
+
+    <nav class="toc" aria-label="Contents">
+      <a href="#safety">Safety notice</a>
+      <a href="#privacy">Privacy policy</a>
+      <a href="#terms">Terms of use</a>
+      <a href="#credits">Credits &amp; licences</a>
+      <a href="#contact">Contact</a>
+    </nav>
+
+    <section>
+      <h2>About</h2>
+      <p>
+        VMG Sailing shows your <strong>Velocity Made Good</strong> – how fast you are actually closing in on the
+        next point of your route – together with speed and course over ground, bearing, distance and ETA.
+        It runs in the browser and can be added to the home screen of your phone.
+      </p>
+    </section>
+
+    <section id="safety" class="callout">
+      <h2>⚠ Safety notice</h2>
+      <p><strong>VMG Sailing is an aid for information only. It is not a navigation device and must not be used as the
+        sole means of navigation.</strong></p>
+      <ul>
+        <li>The maps (OpenStreetMap, OpenSeaMap) are compiled by volunteers. They are <strong>not official nautical
+          charts</strong> and may be incomplete, outdated or wrong – in particular depths, hazards and seamarks.</li>
+        <li>Phone GPS can be inaccurate or fail (shading, battery saving, background mode). Speed values are accurate to
+          about ±0.1–0.2 kn at best.</li>
+        <li>Always carry and use official charts, keep a proper lookout and follow the rules of the road and good
+          seamanship. The skipper remains responsible for the safe navigation of the vessel at all times.</li>
+      </ul>
+    </section>
+
+    <section id="privacy">
+      <h2>Privacy policy</h2>
+      <p class="muted">In accordance with the Swiss Federal Act on Data Protection (FADP/revDSG) and, where applicable,
+        the EU General Data Protection Regulation (GDPR).</p>
+
+      <h3>Who is responsible</h3>
+      <p>David Giger, Switzerland (contact: see <a href="#contact">Contact</a>).</p>
+
+      <h3>In short</h3>
+      <p>
+        VMG Sailing has <strong>no user accounts, no tracking, no analytics, no advertising and no cookies</strong>.
+        We do not run a server that receives your data. Your position and your route never leave your device
+        through us.
+      </p>
+
+      <h3>Data processed on your device</h3>
+      <ul>
+        <li><strong>Location</strong> – only after you allow it in your browser. It is used on your device to calculate
+          VMG, speed, course, distance and ETA, and is not stored permanently, except:</li>
+        <li><strong>Route and settings</strong> – your route points, the start position of the route (with time) and
+          your options are saved in your browser's local storage on this device only, so they are still there after a
+          restart. Delete them with ✕ (delete route) or by clearing the site data of this website in your
+          browser.</li>
+        <li>Map areas you have viewed are kept in the browser cache so the map also works offline.</li>
+      </ul>
+
+      <h3>Third-party services</h3>
+      <p>
+        To show the map and run the search, your browser connects directly to the services below. Like every website,
+        they receive technical data such as your <strong>IP address</strong>, browser type and the requested content
+        (e.g. which map area is loaded). They process this under their own responsibility and privacy policies;
+        some are located outside Switzerland (EU, UK, USA).
+      </p>
+      <table class="legal-table">
+        <thead><tr><th>Service</th><th>Purpose</th><th>Data</th></tr></thead>
+        <tbody>
+          <tr><td><a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub Pages</a> (GitHub Inc., USA)</td><td>Hosting of this web app</td><td>IP address, request data</td></tr>
+          <tr><td><a href="https://www.jsdelivr.com/terms/privacy-policy-jsdelivr-net">jsDelivr</a> (CDN, worldwide)</td><td>Delivery of the map library Leaflet</td><td>IP address, request data</td></tr>
+          <tr><td><a href="https://osmfoundation.org/wiki/Privacy_Policy">OpenStreetMap Foundation</a> (UK)</td><td>Map tiles; place search (Nominatim) – only when you search</td><td>IP address, map area; search text</td></tr>
+          <tr><td><a href="https://www.openseamap.org/">OpenSeaMap</a> (Germany)</td><td>Seamark overlay</td><td>IP address, map area</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Your rights</h3>
+      <p>
+        You have the right to information about, correction and deletion of your personal data. As we do not store
+        any personal data on our side, you can delete all data of this app yourself (see above). For questions use the
+        <a href="#contact">contact</a> below.
+      </p>
+    </section>
+
+    <section id="terms">
+      <h2>Terms of use</h2>
+      <ol>
+        <li>VMG Sailing is currently provided free of charge as a beta version for private use.</li>
+        <li>The app is provided "as is", without any warranty of accuracy, completeness, availability or fitness for a
+          particular purpose. Map data and third-party services may change or be unavailable at any time.</li>
+        <li>Use is at your own risk. See the <a href="#safety">safety notice</a>. To the extent permitted by law, any
+          liability for damages arising from the use of the app is excluded; liability for unlawful intent or gross
+          negligence remains unaffected (Art. 100 Swiss Code of Obligations).</li>
+        <li>Swiss law applies.</li>
+      </ol>
+    </section>
+
+    <section id="credits">
+      <h2>Credits &amp; licences</h2>
+      <ul>
+        <li>Map data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>, available
+          under the Open Database License (ODbL).</li>
+        <li>Seamarks © <a href="https://www.openseamap.org/">OpenSeaMap contributors</a>, CC BY-SA 2.0.</li>
+        <li>Place search by <a href="https://nominatim.org/">Nominatim</a>, data © OpenStreetMap contributors.</li>
+        <li>Map library <a href="https://leafletjs.com/">Leaflet</a> 1.9.4, BSD 2-Clause License:</li>
+      </ul>
+      <pre class="license">BSD 2-Clause License
+
+Copyright (c) 2010-2023, Volodymyr Agafonkin
+Copyright (c) 2010-2011, CloudMade
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</pre>
+      <p>VMG Sailing © 2026 David Giger. All rights reserved.</p>
+    </section>
+
+    <section id="contact">
+      <h2>Contact</h2>
+      <p>
+        David Giger, Switzerland<br>
+        Questions, feedback and bug reports:
+        <a href="https://github.com/DaveGiGi/VMG_APP/issues">github.com/DaveGiGi/VMG_APP/issues</a>
+      </p>
+    </section>
+
+    <p class="page-foot"><a class="page-back" href="./">← Back to the app</a></p>
+  </main>
+</body>
+</html>

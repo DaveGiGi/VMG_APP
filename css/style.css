@@ -312,3 +312,80 @@ html, body {
 
 /* Move Leaflet zoom buttons below the search bar */
 .leaflet-top { top: calc(56px + env(safe-area-inset-top)); }
+
+/* ---------- About & Legal page (about.html) ---------- */
+body.page { height: auto; min-height: 100%; overscroll-behavior: auto; line-height: 1.5; }
+.page-head {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
+  padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, .12);
+}
+.page-back { color: var(--accent); text-decoration: none; font-weight: 600; }
+.page-body { max-width: 760px; margin: 0 auto; padding: 16px 16px calc(32px + env(safe-area-inset-bottom)); }
+.page-title { display: flex; align-items: center; gap: 14px; margin: 8px 0 12px; }
+.page-title img { border-radius: 12px; }
+.page-title h1 { margin: 0; font-size: 24px; }
+.page-title p { margin: 2px 0 0; }
+.page a { color: #7cc4ff; }
+.page a.page-back { color: var(--accent); }
+.page h2 { font-size: 19px; margin: 28px 0 8px; }
+.page h3 { font-size: 15px; margin: 18px 0 4px; }
+.page ul, .page ol { padding-left: 20px; }
+.page li { margin: 4px 0; }
+.muted { color: var(--muted); font-size: 13px; }
+.toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 4px; }
+.toc a {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+  font-size: 13px;
+  text-decoration: none;
+}
+.callout {
+  margin-top: 24px;
+  padding: 4px 16px 8px;
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  background: rgba(255, 176, 32, .1);
+}
+.callout h2 { margin-top: 12px; }
+.legal-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.legal-table th, .legal-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, .12);
+}
+.legal-table th { color: var(--muted); font-weight: 600; }
+.license {
+  white-space: pre-wrap;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, .25);
+  overflow-x: auto;
+}
+.page-foot { margin-top: 32px; }
+
+/* ---------- First-start safety notice ---------- */
+.notice-card h2 { display: flex; align-items: center; gap: 8px; }
+.notice-card ul { padding-left: 20px; margin: 8px 0; font-size: 14px; line-height: 1.45; }
+.notice-card li { margin: 4px 0; }
+.notice-card .muted a { color: #7cc4ff; }
+.sheet-link {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .08);
+  color: var(--text);
+  text-align: center;
+  text-decoration: none;
+  font-size: 15px;
+}
+.search-results li.search-credit { font-size: 11px; color: #666; cursor: default; background: #f5f5f5; }

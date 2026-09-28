@@ -57,7 +57,24 @@
         </span>
         <input id="opt-decimal" type="checkbox" class="switch">
       </label>
+      <a class="sheet-link" href="about.html">About &amp; Legal · Privacy · Licences</a>
       <button id="settings-close" type="button" class="sheet-done">Done</button>
+    </div>
+  </div>
+
+  <!-- Safety notice, shown on first start until confirmed -->
+  <div id="notice" class="sheet" hidden>
+    <div class="sheet-card notice-card" role="alertdialog" aria-modal="true" aria-labelledby="notice-title">
+      <h2 id="notice-title">⚠ Before you sail</h2>
+      <p><strong>VMG Sailing is an aid for information only – not a navigation device.</strong></p>
+      <ul>
+        <li>The maps are volunteer data, <strong>not official nautical charts</strong>.</li>
+        <li>Phone GPS can be inaccurate or fail.</li>
+        <li>Always use official charts and keep a proper lookout. The skipper remains responsible.</li>
+      </ul>
+      <p class="muted">By continuing you accept the <a href="about.html#terms">terms of use</a> and the
+        <a href="about.html#privacy">privacy policy</a>.</p>
+      <button id="notice-ok" type="button" class="sheet-done">I understand</button>
     </div>
   </div>
 

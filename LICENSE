@@ -1,0 +1,11 @@
+Copyright (c) 2026 David Giger. All rights reserved.
+
+This source code is published for viewing and for the operation of the
+VMG Sailing web app only. No licence is granted to copy, modify, distribute
+or use this code, in whole or in part, without the prior written permission
+of the copyright holder.
+
+Third-party components keep their own licences (see about.html):
+- Leaflet (BSD 2-Clause License)
+- Map data © OpenStreetMap contributors (ODbL)
+- Seamarks © OpenSeaMap contributors (CC BY-SA 2.0)

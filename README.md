@@ -56,11 +56,22 @@ The values are `PASS_RADIUS_M` and `CUT_RADIUS_M` in `js/nav.js`.
   ✕ deletes the whole route after two confirmations
 - Screen stays on (Wake Lock); app files and previously viewed map tiles work offline
 
+## Legal
+
+- `about.html` – About & Legal page: safety notice, privacy policy (Swiss FADP / GDPR), terms of use,
+  credits and licences, contact. Reachable via ⚙ and the map attribution; its URL can serve as the privacy
+  policy link for app stores.
+- On first start a **safety notice** must be confirmed ("I understand"); stored as `vmg.noticeAccepted`.
+  Raise `NOTICE_VERSION` in `js/app.js` to show it again after changing it.
+- `LICENSE` – all rights reserved (source is visible but not licensed for reuse). Third-party components keep
+  their licences (Leaflet BSD-2, OpenStreetMap ODbL, OpenSeaMap CC BY-SA 2.0).
+
 ## Project structure
 
 | File | Purpose |
 |---|---|
 | `index.html` | Page layout |
+| `about.html` | About & Legal page |
 | `css/style.css` | Styling |
 | `js/nav.js` | Navigation math (distance, bearing, VMG, ETA, waypoint passing) – no browser dependency |
 | `js/route.js` | Route editing (add, insert, move, delete, active point) – pure functions |

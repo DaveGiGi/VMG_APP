@@ -14,6 +14,8 @@ const $ = (id) => document.getElementById(id);
 
 const ROUTE_KEY = 'vmg.route';
 const SETTINGS_KEY = 'vmg.settings';
+const NOTICE_KEY = 'vmg.noticeAccepted';
+const NOTICE_VERSION = '1'; // raise to show the safety notice again after changing it
 const DEFAULT_SETTINGS = {
   autoAdvance: true,  // switch to the next point automatically when rounded
   showDecimal: true,  // small grey second decimal of the VMG (trend only – GPS is ±0.1–0.2 kn)
@@ -63,12 +65,13 @@ new ResizeObserver(() => {
 
 const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
-  attribution: '© OpenStreetMap contributors',
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 }).addTo(map);
 const seamarks = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
   maxZoom: 18,
-  attribution: 'Seamarks © OpenSeaMap',
+  attribution: 'Seamarks © <a href="https://www.openseamap.org/">OpenSeaMap</a>',
 }).addTo(map);
+map.attributionControl.setPrefix('<a href="about.html">About &amp; Legal</a> · <a href="https://leafletjs.com/">Leaflet</a>');
 L.control.layers({ OpenStreetMap: osm }, { 'Seamarks (OpenSeaMap)': seamarks }, { position: 'bottomleft' }).addTo(map);
 
 const boatIcon = L.divIcon({
@@ -337,6 +340,11 @@ $('search').addEventListener('submit', async (e) => {
       li.addEventListener('click', () => addFound({ lat: +h.lat, lon: +h.lon, name: h.display_name.split(',')[0] }));
       list.appendChild(li);
     }
+    // Required attribution for the search service
+    const credit = document.createElement('li');
+    credit.className = 'search-credit';
+    credit.innerHTML = 'Search by <a href="https://nominatim.org/">Nominatim</a> · © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+    list.appendChild(credit);
   } catch (err) {
     list.innerHTML = '';
     const li = document.createElement('li');
@@ -715,7 +723,20 @@ function frame(t) {
   render();
 }
 
+// ---------------------------------------------------------------- Safety notice (first start)
+function showNoticeIfNeeded() {
+  let accepted = null;
+  try { accepted = localStorage.getItem(NOTICE_KEY); } catch { /* storage unavailable */ }
+  if (accepted === NOTICE_VERSION) return;
+  $('notice').hidden = false;
+  $('notice-ok').addEventListener('click', () => {
+    try { localStorage.setItem(NOTICE_KEY, NOTICE_VERSION); } catch { /* shown again next time */ }
+    $('notice').hidden = true;
+  }, { once: true });
+}
+
 // ---------------------------------------------------------------- Start
+showNoticeIfNeeded();
 requestAnimationFrame(frame);
 setFollow(true);
 drawRoute();
