@@ -1,7 +1,7 @@
-// Service Worker: macht die App offline-fähig.
-// - App-Dateien: erst Netz (damit Updates ankommen), sonst Cache.
-// - Kartenkacheln: erst Cache, sonst Netz (bereits angesehene Gebiete gehen offline).
-const APP_CACHE = 'vmg-app-v1';
+// Service worker: makes the app work offline.
+// - App files: network first (so updates arrive), cache as fallback.
+// - Map tiles: cache first, then network (areas viewed before work offline).
+const APP_CACHE = 'vmg-app-v2';
 const TILE_CACHE = 'vmg-tiles-v1';
 const MAX_TILES = 3000;
 
@@ -34,7 +34,7 @@ const isTile = (url) => /tile\.openstreetmap\.org|tiles\.openseamap\.org/.test(u
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
-  if (url.hostname.includes('nominatim')) return; // Suche nie cachen
+  if (url.hostname.includes('nominatim')) return; // never cache search
 
   if (isTile(url)) {
     e.respondWith(

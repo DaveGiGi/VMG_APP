@@ -1,6 +1,6 @@
-// Reine Navigations-Berechnungen (keine Abhängigkeit von Browser/Karte).
-// Alle Winkel in Grad, Distanzen in Metern, Geschwindigkeiten in m/s,
-// sofern nicht anders angegeben.
+// Pure navigation math (no dependency on browser/map).
+// All angles in degrees, distances in metres, speeds in m/s,
+// unless stated otherwise.
 
 export const EARTH_RADIUS_M = 6371008.8;
 export const METERS_PER_NM = 1852;
@@ -9,18 +9,18 @@ export const MS_PER_KNOT = METERS_PER_NM / 3600; // 1 kn = 0.514444 m/s
 const toRad = (deg) => (deg * Math.PI) / 180;
 const toDeg = (rad) => (rad * 180) / Math.PI;
 
-/** Winkel auf 0..360 normalisieren. */
+/** Normalise an angle to 0..360. */
 export function normalizeDeg(deg) {
   return ((deg % 360) + 360) % 360;
 }
 
-/** Kleinste Winkeldifferenz a-b im Bereich -180..180. */
+/** Smallest angle difference a-b in the range -180..180. */
 export function angleDiff(a, b) {
   const d = normalizeDeg(a - b);
   return d > 180 ? d - 360 : d;
 }
 
-/** Großkreis-Distanz zwischen zwei Punkten {lat, lon} in Metern (Haversine). */
+/** Great-circle distance between two points {lat, lon} in metres (haversine). */
 export function distance(p1, p2) {
   const dLat = toRad(p2.lat - p1.lat);
   const dLon = toRad(p2.lon - p1.lon);
@@ -30,7 +30,7 @@ export function distance(p1, p2) {
   return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(a)));
 }
 
-/** Anfangs-Peilung (rechtweisend, 0 = Nord) von p1 nach p2 in Grad. */
+/** Initial true bearing (0 = north) from p1 to p2 in degrees. */
 export function bearing(p1, p2) {
   const φ1 = toRad(p1.lat);
   const φ2 = toRad(p2.lat);
@@ -40,7 +40,7 @@ export function bearing(p1, p2) {
   return normalizeDeg(toDeg(Math.atan2(y, x)));
 }
 
-/** Zielpunkt, wenn man von p aus `dist` Meter auf Kurs `brg` fährt. */
+/** Point reached when travelling `dist` metres from p on course `brg`. */
 export function destinationPoint(p, brg, dist) {
   const δ = dist / EARTH_RADIUS_M;
   const θ = toRad(brg);
@@ -53,17 +53,17 @@ export function destinationPoint(p, brg, dist) {
 }
 
 /**
- * VMG (Velocity Made Good) Richtung Ziel.
- * VMG = SOG * cos(COG - Peilung zum Ziel)
- * Positiv = man nähert sich dem Ziel, negativ = man entfernt sich.
+ * VMG (Velocity Made Good) towards the target.
+ * VMG = SOG * cos(COG - bearing to target)
+ * Positive = closing in on the target, negative = moving away.
  */
 export function vmg(sog, cog, bearingToTarget) {
   return sog * Math.cos(toRad(angleDiff(cog, bearingToTarget)));
 }
 
-/** Restzeit in Sekunden bei gegebener VMG, oder null wenn man nicht näher kommt. */
+/** Time to go in seconds at the given VMG, or null if not getting closer. */
 export function etaSeconds(distanceM, vmgMs) {
-  if (!(vmgMs > 0.05)) return null; // unter ~0.1 kn ist eine ETA sinnlos
+  if (!(vmgMs > 0.05)) return null; // below ~0.1 kn an ETA is meaningless
   return distanceM / vmgMs;
 }
 
@@ -72,8 +72,8 @@ export const knotsToMs = (kn) => kn * MS_PER_KNOT;
 export const mToNm = (m) => m / METERS_PER_NM;
 
 /**
- * Kurs und Fahrt über Grund aus zwei GPS-Punkten {lat, lon, t(ms)}.
- * Fallback, falls das Gerät selbst keine speed/heading liefert.
+ * Course and speed over ground from two GPS fixes {lat, lon, t(ms)}.
+ * Fallback when the device does not provide speed/heading itself.
  */
 export function motionFromFixes(a, b) {
   const dt = (b.t - a.t) / 1000;

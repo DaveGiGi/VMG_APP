@@ -1,69 +1,70 @@
-# VMG Segeln
+# VMG Sailing
 
-Web-App (PWA), die beim Segeln die **VMG – Velocity Made Good** zu einem gewählten Ziel anzeigt:
-wie schnell man sich tatsächlich dem Ziel nähert.
+Web app (PWA) for sailors that shows the **VMG – Velocity Made Good** towards a chosen target:
+how fast you are actually closing in on it.
 
 ```
-VMG = SOG × cos(COG − Peilung zum Ziel)
+VMG = SOG × cos(COG − bearing to target)
 ```
 
-- **SOG** Speed over Ground (Fahrt über Grund, aus GPS)
-- **COG** Course over Ground (Kurs über Grund, aus GPS)
-- **Peilung** Richtung vom Boot zum Ziel
+- **SOG** speed over ground (from GPS)
+- **COG** course over ground (from GPS)
+- **Bearing** direction from the boat to the target
 
-## Funktionen
+## Features
 
-- Karte (OpenStreetMap) mit Seezeichen-Overlay (OpenSeaMap)
-- Ziel setzen: Ort suchen, Koordinaten eingeben (`54.32, 10.14`), 🎯 und auf die Karte tippen oder lange drücken; Ziel ist verschiebbar
-- Anzeige: VMG, SOG, COG, Peilung, Distanz (sm), ETA, GPS-Genauigkeit, Abweichung vom direkten Kurs
-- Demo-Modus (▶︎) mit Reglern für Kurs und Fahrt – zum Testen an Land
-- Bildschirm bleibt an (Wake Lock), App-Dateien und angesehene Kartenkacheln funktionieren offline
+- Map (OpenStreetMap) with seamark overlay (OpenSeaMap)
+- Set target: search a place, type coordinates (`54.32, 10.14`), tap 🎯 then the map, or long-press the map; the target flag can be dragged
+- Display: VMG, deviation of COG from bearing, SOG, COG, bearing, distance (nm), ETA, GPS accuracy
+- Map lines: dark red dashed = straight line to target, dark green = where you'll be in 5 minutes
+- Demo mode (▶︎) with sliders for course and speed – for testing on land
+- Screen stays on (Wake Lock); app files and previously viewed map tiles work offline
 
-## Projektstruktur
+## Project structure
 
-| Datei | Zweck |
+| File | Purpose |
 |---|---|
-| `index.html` | Seitenaufbau |
-| `css/style.css` | Aussehen |
-| `js/nav.js` | Navigations-Mathematik (Distanz, Peilung, VMG, ETA) – ohne Browser-Abhängigkeit |
-| `js/app.js` | Karte, GPS, Suche, Anzeige, Demo |
-| `sw.js` | Service Worker (Offline-Cache) |
-| `manifest.webmanifest` | macht die Seite als App installierbar |
-| `tests/nav.test.mjs` | Tests für `nav.js` |
+| `index.html` | Page layout |
+| `css/style.css` | Styling |
+| `js/nav.js` | Navigation math (distance, bearing, VMG, ETA) – no browser dependency |
+| `js/app.js` | Map, GPS, search, display, demo |
+| `sw.js` | Service worker (offline cache) |
+| `manifest.webmanifest` | Makes the page installable as an app |
+| `tests/nav.test.mjs` | Tests for `nav.js` |
 
-Kein Build-Schritt, keine Abhängigkeiten – Leaflet wird vom CDN geladen.
+No build step, no dependencies – Leaflet is loaded from a CDN.
 
-## Lokal starten
+## Run locally
 
-Voraussetzung: [Node.js](https://nodejs.org).
+Requires [Node.js](https://nodejs.org).
 
 ```bash
 npm start
 ```
 
-Dann http://localhost:8080 öffnen. Tests:
+Then open http://localhost:8080. Tests:
 
 ```bash
 npm test
 ```
 
-## Auf dem Handy nutzen (GitHub Pages)
+## Use on the phone (GitHub Pages)
 
-GPS funktioniert im Browser nur über HTTPS – GitHub Pages liefert das kostenlos.
+Browsers only allow GPS over HTTPS – GitHub Pages provides that for free.
 
-1. Auf github.com ein neues, leeres Repository `VMG_APP` anlegen (ohne README).
-2. Lokal verbinden und hochladen:
+1. On github.com create a new, empty public repository `VMG_APP` (no README).
+2. Connect and upload:
    ```bash
-   git remote add origin https://github.com/<benutzername>/VMG_APP.git
+   git remote add origin https://github.com/<username>/VMG_APP.git
    git push -u origin main
    ```
-3. Im Repository: **Settings → Pages → Source: Deploy from a branch → Branch `main`, Ordner `/ (root)` → Save**.
-4. Nach ~1 Minute ist die App unter `https://<benutzername>.github.io/VMG_APP/` erreichbar.
-5. Auf dem Android-Handy in Chrome öffnen → Standort erlauben → Menü ⋮ → **Zum Startbildschirm hinzufügen**.
+3. In the repository: **Settings → Pages → Source: Deploy from a branch → Branch `main`, folder `/ (root)` → Save**.
+4. After ~1 minute the app is live at `https://<username>.github.io/VMG_APP/`.
+5. On the Android phone open it in Chrome → allow location → menu ⋮ → **Add to Home screen**.
 
-## Grenzen der Version 1
+## Limitations of version 1
 
-- Keine Strömung/Wind: VMG bezieht sich auf das Ziel (VMC), nicht auf den Wind.
-- Karte offline nur für bereits angesehene Gebiete.
-- Ortssuche braucht Internet (Nominatim).
-- Läuft der Bildschirm aus bzw. ist die App im Hintergrund, pausiert das GPS.
+- No wind or current: VMG is towards the target (strictly VMC), not towards the wind. Without wind data the app cannot judge whether a course is optimal.
+- Map offline only for areas viewed before.
+- Place search needs internet (Nominatim).
+- GPS pauses when the screen is off or the app is in the background.

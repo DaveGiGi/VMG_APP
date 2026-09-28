@@ -1,36 +1,37 @@
-// Oberfläche: Karte, GPS, Zielwahl, Anzeige, Demo-Modus.
-// Die eigentliche Mathematik steckt in nav.js.
+// UI: map, GPS, target selection, display, demo mode.
+// The actual math lives in nav.js.
 import {
   angleDiff, bearing, destinationPoint, distance, etaSeconds,
   knotsToMs, motionFromFixes, msToKnots, mToNm, vmg,
 } from './nav.js';
 
-const L = window.L; // Leaflet wird als normales <script> geladen
+const L = window.L; // Leaflet is loaded as a classic <script>
 const $ = (id) => document.getElementById(id);
 
 const TARGET_KEY = 'vmg.target';
 const ARRIVAL_RADIUS_M = 50;
-const SMOOTHING = 0.35;        // 0..1, höher = reagiert schneller, zappelt mehr
-const MIN_SOG_FOR_COG_MS = knotsToMs(0.3); // darunter ist der GPS-Kurs Rauschen
+const SMOOTHING = 0.35;        // 0..1, higher = reacts faster but jitters more
+const MIN_SOG_FOR_COG_MS = knotsToMs(0.3); // below this, GPS course is just noise
+const ON_COURSE_DEG = 3;       // deviation below this counts as "on course"
 
 const state = {
   pos: null,          // {lat, lon}
-  acc: null,          // GPS-Genauigkeit in m
-  vel: null,          // geglätteter Geschwindigkeitsvektor {ve, vn} in m/s (Ost/Nord)
-  fixes: [],          // letzte GPS-Punkte für die Fallback-Berechnung
+  acc: null,          // GPS accuracy in m
+  vel: null,          // smoothed velocity vector {ve, vn} in m/s (east/north)
+  fixes: [],          // recent GPS fixes for the fallback calculation
   target: loadTarget(),
-  follow: true,       // Karte folgt dem Boot
-  picking: false,     // "Ziel antippen"-Modus
+  follow: true,       // map follows the boat
+  picking: false,     // "tap map to set target" mode
   demo: false,
   demoTimer: null,
   gpsWatch: null,
 };
 
-// ---------------------------------------------------------------- Karte
+// ---------------------------------------------------------------- Map
 const map = L.map('map', { zoomControl: true, attributionControl: true })
   .setView(state.target ? [state.target.lat, state.target.lon] : [47.6, 9.4], 11);
 
-// Karte endet oberhalb des Anzeige-Panels (dessen Höhe ändert sich z.B. im Demo-Modus)
+// The map ends above the display panel (its height changes, e.g. in demo mode)
 const panel = document.querySelector('.panel');
 new ResizeObserver(() => {
   document.documentElement.style.setProperty('--panel-h', `${panel.offsetHeight - 16}px`);
@@ -39,13 +40,13 @@ new ResizeObserver(() => {
 
 const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
-  attribution: '© OpenStreetMap-Mitwirkende',
+  attribution: '© OpenStreetMap contributors',
 }).addTo(map);
 const seamarks = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
   maxZoom: 18,
-  attribution: 'Seezeichen © OpenSeaMap',
+  attribution: 'Seamarks © OpenSeaMap',
 }).addTo(map);
-L.control.layers({ OpenStreetMap: osm }, { 'Seezeichen (OpenSeaMap)': seamarks }, { position: 'bottomleft' }).addTo(map);
+L.control.layers({ OpenStreetMap: osm }, { 'Seamarks (OpenSeaMap)': seamarks }, { position: 'bottomleft' }).addTo(map);
 
 const boatIcon = L.divIcon({
   className: '',
@@ -63,22 +64,23 @@ const targetIcon = L.divIcon({
 
 let boatMarker = null;
 let targetMarker = null;
-const courseLine = L.polyline([], { color: '#ffb020', weight: 3, dashArray: '8 8' }).addTo(map);
-const headingLine = L.polyline([], { color: '#3ddc84', weight: 2 }).addTo(map);
+// Dark, thick lines so they stay visible in sunlight
+const targetLine = L.polyline([], { color: '#b91c1c', weight: 4, opacity: 0.9, dashArray: '10 8' }).addTo(map);
+const headingLine = L.polyline([], { color: '#166534', weight: 5, opacity: 0.95 }).addTo(map);
 
 map.on('dragstart', () => { state.follow = false; });
 
 map.on('click', (e) => {
   if (!state.picking) return;
-  setTarget({ lat: e.latlng.lat, lon: e.latlng.lng, name: 'Markierter Punkt' });
+  setTarget({ lat: e.latlng.lat, lon: e.latlng.lng, name: 'Marked point' });
   setPicking(false);
 });
-// Langes Drücken (Handy) bzw. Rechtsklick setzt immer das Ziel
+// Long press (phone) or right click always sets the target
 map.on('contextmenu', (e) => {
-  setTarget({ lat: e.latlng.lat, lon: e.latlng.lng, name: 'Markierter Punkt' });
+  setTarget({ lat: e.latlng.lat, lon: e.latlng.lng, name: 'Marked point' });
 });
 
-// ---------------------------------------------------------------- Ziel
+// ---------------------------------------------------------------- Target
 function loadTarget() {
   try {
     const t = JSON.parse(localStorage.getItem(TARGET_KEY));
@@ -91,7 +93,7 @@ function setTarget(t) {
   try {
     if (t) localStorage.setItem(TARGET_KEY, JSON.stringify(t));
     else localStorage.removeItem(TARGET_KEY);
-  } catch { /* Speicher nicht verfügbar – egal */ }
+  } catch { /* storage unavailable – not critical */ }
   drawTarget();
   if (t && state.pos) {
     map.fitBounds([[state.pos.lat, state.pos.lon], [t.lat, t.lon]], { padding: [60, 60], maxZoom: 15 });
@@ -105,11 +107,11 @@ function drawTarget() {
   if (targetMarker) { targetMarker.remove(); targetMarker = null; }
   if (!state.target) return;
   targetMarker = L.marker([state.target.lat, state.target.lon], { icon: targetIcon, draggable: true })
-    .bindTooltip(state.target.name || 'Ziel')
+    .bindTooltip(state.target.name || 'Target')
     .addTo(map);
   targetMarker.on('dragend', () => {
     const ll = targetMarker.getLatLng();
-    setTarget({ lat: ll.lat, lon: ll.lng, name: 'Markierter Punkt' });
+    setTarget({ lat: ll.lat, lon: ll.lng, name: 'Marked point' });
   });
 }
 
@@ -119,14 +121,14 @@ function setPicking(on) {
   $('hint').hidden = !on;
 }
 
-// ---------------------------------------------------------------- Suche
+// ---------------------------------------------------------------- Search
 $('search').addEventListener('submit', async (e) => {
   e.preventDefault();
   const q = $('search-input').value.trim();
   const list = $('search-results');
   if (!q) { list.hidden = true; return; }
 
-  // Direkt eingegebene Koordinaten, z.B. "54.32, 10.14"
+  // Coordinates typed directly, e.g. "54.32, 10.14"
   const m = q.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,; ]\s*(-?\d+(?:\.\d+)?)\s*$/);
   if (m) {
     setTarget({ lat: +m[1], lon: +m[2], name: q });
@@ -135,15 +137,15 @@ $('search').addEventListener('submit', async (e) => {
     return;
   }
 
-  list.innerHTML = '<li>Suche …</li>';
+  list.innerHTML = '<li>Searching …</li>';
   list.hidden = false;
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=de&q=${encodeURIComponent(q)}`;
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=en&q=${encodeURIComponent(q)}`;
     const res = await fetch(url, { headers: { Accept: 'application/json' } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const hits = await res.json();
     list.innerHTML = '';
-    if (!hits.length) { list.innerHTML = '<li>Nichts gefunden</li>'; return; }
+    if (!hits.length) { list.innerHTML = '<li>Nothing found</li>'; return; }
     for (const h of hits) {
       const li = document.createElement('li');
       li.textContent = h.display_name;
@@ -158,18 +160,18 @@ $('search').addEventListener('submit', async (e) => {
   } catch (err) {
     list.innerHTML = '';
     const li = document.createElement('li');
-    li.textContent = `Suche fehlgeschlagen (${err.message}). Offline?`;
+    li.textContent = `Search failed (${err.message}). Offline?`;
     list.appendChild(li);
   }
 });
 
-// ---------------------------------------------------------------- Position & Bewegung
-/** Neue Position + optional vom Gerät gelieferte Fahrt/Kurs verarbeiten. */
+// ---------------------------------------------------------------- Position & motion
+/** Process a new position plus speed/course if the device provides them. */
 function updateMotion(pos, sogMs, cogDeg, acc, t) {
   state.pos = pos;
   state.acc = acc;
 
-  // Fallback: Fahrt/Kurs aus den letzten Punkten (>= 3 s zurück) berechnen
+  // Fallback: derive speed/course from recent fixes (>= 3 s apart)
   state.fixes.push({ ...pos, t });
   while (state.fixes.length > 2 && t - state.fixes[1].t >= 3000) state.fixes.shift();
   const deviceHasMotion = Number.isFinite(sogMs) && (sogMs < MIN_SOG_FOR_COG_MS || Number.isFinite(cogDeg));
@@ -180,7 +182,7 @@ function updateMotion(pos, sogMs, cogDeg, acc, t) {
   if (!Number.isFinite(sogMs)) sogMs = 0;
   if (!Number.isFinite(cogDeg)) cogDeg = 0;
 
-  // Glätten als Vektor (sonst gäbe es Probleme beim Sprung 359° -> 0°)
+  // Smooth as a vector (avoids trouble at the 359° -> 0° wrap)
   const r = (cogDeg * Math.PI) / 180;
   const ve = sogMs * Math.sin(r);
   const vn = sogMs * Math.cos(r);
@@ -219,9 +221,9 @@ function drawBoat() {
   const rot = document.getElementById('boat-rot');
   if (rot) rot.style.transform = `rotate(${cog ?? 0}deg)`;
 
-  // Grüne Linie: wo das Boot in 5 Minuten wäre
+  // Green line: where the boat will be in 5 minutes
   headingLine.setLatLngs(cog == null ? [] : [ll, ptToLL(destinationPoint(state.pos, cog, sog * 300))]);
-  courseLine.setLatLngs(state.target ? [ll, ptToLL(state.target)] : []);
+  targetLine.setLatLngs(state.target ? [ll, ptToLL(state.target)] : []);
 
   if (state.follow) map.panTo(ll, { animate: false });
 }
@@ -229,7 +231,7 @@ function drawBoat() {
 // ---------------------------------------------------------------- GPS
 function startGps() {
   if (!('geolocation' in navigator)) {
-    $('v-status').textContent = 'Dieses Gerät/Browser kann kein GPS.';
+    showStatus('This device/browser has no GPS.');
     return;
   }
   state.gpsWatch = navigator.geolocation.watchPosition(
@@ -241,11 +243,11 @@ function startGps() {
     (err) => {
       if (state.demo) return;
       const msg = {
-        1: 'GPS-Zugriff verweigert. Bitte in den Browser-Einstellungen erlauben (oder ▶︎ Demo testen).',
-        2: 'Position nicht verfügbar.',
-        3: 'GPS-Zeitüberschreitung – suche weiter …',
+        1: 'Location access denied. Allow it in the browser settings (or try ▶︎ demo).',
+        2: 'Position unavailable.',
+        3: 'GPS timeout – still searching …',
       }[err.code] || err.message;
-      $('v-status').textContent = msg;
+      showStatus(msg);
     },
     { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
   );
@@ -260,15 +262,15 @@ function setDemo(on) {
   clearInterval(state.demoTimer);
   state.vel = null;
   state.fixes = [];
-  if (!on) { $('v-status').textContent = 'Demo beendet – warte auf GPS …'; return; }
+  if (!on) { showStatus('Demo stopped – waiting for GPS …'); return; }
 
   let pos = state.pos ?? { lat: map.getCenter().lat, lon: map.getCenter().lng };
   if (!state.target) {
-    // Ziel 3 sm nördlich setzen, damit man sofort etwas sieht
+    // Put a target 3 nm north so there is something to see right away
     const t = destinationPoint(pos, 0, 3 * 1852);
-    setTarget({ ...t, name: 'Demo-Ziel' });
+    setTarget({ ...t, name: 'Demo target' });
   } else if (distance(pos, state.target) < 0.5 * 1852) {
-    // Boot stünde (fast) auf dem Ziel -> 3 sm südwestlich davon starten
+    // Boat would start (almost) on the target -> start 3 nm south-west of it
     pos = destinationPoint(state.target, 225, 3 * 1852);
   }
   state.follow = true;
@@ -289,7 +291,7 @@ for (const [inp, out, show] of [['i-course', 'o-course', (v) => v], ['i-speed', 
   $(inp).addEventListener('input', () => { $(out).textContent = show($(inp).value); });
 }
 
-// ---------------------------------------------------------------- Anzeige
+// ---------------------------------------------------------------- Display
 function fmt(n, digits = 1) {
   return Number.isFinite(n) ? n.toFixed(digits) : '–';
 }
@@ -300,9 +302,16 @@ function fmtDuration(s) {
   const min = Math.round(s / 60);
   if (min < 60) return `${min} min`;
   const h = Math.floor(min / 60);
-  if (h >= 48) return `${Math.round(h / 24)} Tage`;
+  if (h >= 48) return `${Math.round(h / 24)} days`;
   return `${h} h ${String(min % 60).padStart(2, '0')}`;
 }
+
+/** Right-hand side of the VMG box: either the course deviation or a message. */
+function showDeviation(value, text) {
+  $('v-dev').textContent = value;
+  $('v-status').textContent = text;
+}
+const showStatus = (text) => showDeviation('', text);
 
 function render() {
   const { sog, cog } = currentSogCog();
@@ -316,7 +325,7 @@ function render() {
   if (!state.pos || !state.target) {
     for (const id of ['v-vmg', 'v-brg', 'v-dtw', 'v-eta']) $(id).textContent = '–';
     $('v-eta-rest').textContent = '';
-    if (state.pos) $('v-status').textContent = 'Ziel wählen: suchen, 🎯 antippen oder lange auf die Karte drücken';
+    if (state.pos) showStatus('Set a target: search, tap 🎯 or long-press the map');
     return;
   }
 
@@ -330,7 +339,7 @@ function render() {
   $('v-dtw').textContent = fmt(mToNm(dist), mToNm(dist) < 10 ? 2 : 1);
   if (eta != null) {
     const at = new Date(Date.now() + eta * 1000);
-    $('v-eta').textContent = at.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    $('v-eta').textContent = at.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     $('v-eta-rest').textContent = fmtDuration(eta);
   } else {
     $('v-eta').textContent = '–';
@@ -340,17 +349,14 @@ function render() {
   if (msToKnots(v) > 0.1) vmgBox.classList.add('good');
   else if (msToKnots(v) < -0.1) vmgBox.classList.add('bad');
 
-  let status;
-  if (dist < ARRIVAL_RADIUS_M) status = '🏁 Ziel erreicht!';
-  else if (cog == null) status = 'Boot steht (unter 0,3 kn) – kein Kurs';
+  if (dist < ARRIVAL_RADIUS_M) showStatus('🏁 Target reached!');
+  else if (cog == null) showStatus('Boat stopped (below 0.3 kn) – no course');
   else {
+    // Angle between course over ground and bearing to target
     const off = angleDiff(cog, brg);
-    const side = off > 0 ? 'rechts (Stb)' : 'links (Bb)';
-    status = Math.abs(off) < 3
-      ? 'Kurs direkt aufs Ziel'
-      : `${Math.round(Math.abs(off))}° ${side} vom direkten Kurs · ${Math.round(Math.cos(off * Math.PI / 180) * 100)} % Effizienz`;
+    if (Math.abs(off) < ON_COURSE_DEG) showDeviation('0°', 'on course to target');
+    else showDeviation(`${Math.round(Math.abs(off))}°`, `${off > 0 ? 'right' : 'left'} of bearing`);
   }
-  $('v-status').textContent = status;
 }
 
 // ---------------------------------------------------------------- Buttons
@@ -361,26 +367,26 @@ $('btn-center').addEventListener('click', () => {
 });
 $('btn-demo').addEventListener('click', () => setDemo(!state.demo));
 $('btn-clear').addEventListener('click', () => {
-  if (state.target && confirm('Ziel löschen?')) setTarget(null);
+  if (state.target && confirm('Clear target?')) setTarget(null);
 });
 document.addEventListener('click', (e) => {
   if (!e.target.closest('#search')) $('search-results').hidden = true;
 });
 
-// ---------------------------------------------------------------- Bildschirm anlassen
+// ---------------------------------------------------------------- Keep screen on
 let wakeLock = null;
 async function keepAwake() {
   try {
     if ('wakeLock' in navigator && document.visibilityState === 'visible') {
       wakeLock = await navigator.wakeLock.request('screen');
     }
-  } catch { /* nicht unterstützt oder abgelehnt */ }
+  } catch { /* not supported or refused */ }
 }
 document.addEventListener('visibilitychange', () => { if (!wakeLock || wakeLock.released) keepAwake(); });
 
-// ---------------------------------------------------------------- Offline-Fähigkeit (PWA)
+// ---------------------------------------------------------------- Offline support (PWA)
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-  navigator.serviceWorker.register('sw.js').catch((e) => console.warn('Service Worker:', e));
+  navigator.serviceWorker.register('sw.js').catch((e) => console.warn('Service worker:', e));
 }
 
 // ---------------------------------------------------------------- Start

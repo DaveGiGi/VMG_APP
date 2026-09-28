@@ -2,7 +2,7 @@
   "name": "vmg-app",
   "version": "0.1.0",
   "private": true,
-  "description": "Segel-VMG (Velocity Made Good) Anzeige als Web-App/PWA",
+  "description": "Sailing VMG (Velocity Made Good) display as a web app/PWA",
   "type": "module",
   "scripts": {
     "test": "node --test",
